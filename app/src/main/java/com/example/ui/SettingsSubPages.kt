@@ -889,7 +889,7 @@ fun SystemUpdateSubPage(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = translate("App is fully up-to-date (v$latestVersionCode)", language),
+                                    text = translate("App is fully up-to-date (v$currentVersionCode)", language),
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF047857)
