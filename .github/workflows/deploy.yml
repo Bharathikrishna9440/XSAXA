@@ -33,33 +33,45 @@ jobs:
       run: chmod +x gradlew
 
     - name: Decode Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 || secrets.DEBUG_KEYSTORE_BASE64 }}
       shell: python
       run: |
         import base64
         import os
         import sys
 
-        if not os.path.exists("debug.keystore.base64"):
-            print("Error: debug.keystore.base64 not found in repository.")
-            sys.exit(1)
+        # First, try to get the keystore from the environment variable (GitHub Secrets)
+        keystore_b64 = os.environ.get("KEYSTORE_BASE64", "").strip()
 
-        with open("debug.keystore.base64", "r") as f:
-            keystore_b64 = f.read().strip()
+        if keystore_b64:
+            print("Found keystore base64 in environment variables (GitHub Secrets).")
+        else:
+            print("KEYSTORE_BASE64 environment variable is empty. Checking for checked-in debug.keystore.base64.")
+            if os.path.exists("debug.keystore.base64"):
+                with open("debug.keystore.base64", "r") as f:
+                    keystore_b64 = f.read().strip()
+                print("Found checked-in debug.keystore.base64 file.")
+            else:
+                print("Error: Keystore not found in environment variables AND debug.keystore.base64 not found on disk.")
+                sys.exit(1)
 
         if keystore_b64:
             valid_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
-            cleaned_b64 = "".join(c for c in keystore_b64 if c in valid_chars)
+            # Replace characters from url-safe base64 just in case
+            cleaned_b64 = keystore_b64.replace("_", "/").replace("-", "+")
+            cleaned_b64 = "".join(c for c in cleaned_b64 if c in valid_chars)
             padded_b64 = cleaned_b64 + "=" * (-len(cleaned_b64) % 4)
             try:
                 decoded_bytes = base64.b64decode(padded_b64)
                 with open("debug.keystore", "wb") as f:
                     f.write(decoded_bytes)
-                print("Successfully decoded keystore from checked-in debug.keystore.base64.")
+                print("Successfully decoded and wrote debug.keystore.")
             except Exception as e:
                 print(f"Error decoding keystore: {e}")
                 sys.exit(1)
         else:
-            print("Error: debug.keystore.base64 content is empty.")
+            print("Error: Keystore base64 content is empty.")
             sys.exit(1)
 
     - name: Get Version Info
