@@ -64,20 +64,48 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
+  val signingKeyAlias = System.getenv("RELEASE_KEY_ALIAS")
+      ?: System.getenv("KEY_ALIAS")
+      ?: System.getenv("SIGNING_KEY_ALIAS")
+      ?: project.findProperty("RELEASE_KEY_ALIAS")?.toString()
+      ?: project.findProperty("KEY_ALIAS")?.toString()
+      ?: "androiddebugkey"
+
+  val signingKeyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+      ?: System.getenv("KEY_PASSWORD")
+      ?: System.getenv("SIGNING_KEY_PASSWORD")
+      ?: project.findProperty("RELEASE_KEY_PASSWORD")?.toString()
+      ?: project.findProperty("KEY_PASSWORD")?.toString()
+      ?: "android"
+
+  val signingStorePassword = System.getenv("RELEASE_STORE_PASSWORD")
+      ?: System.getenv("STORE_PASSWORD")
+      ?: System.getenv("SIGNING_STORE_PASSWORD")
+      ?: project.findProperty("RELEASE_STORE_PASSWORD")?.toString()
+      ?: project.findProperty("STORE_PASSWORD")?.toString()
+      ?: "android"
+
+  val signingStoreType = System.getenv("RELEASE_STORE_TYPE")
+      ?: System.getenv("STORE_TYPE")
+      ?: System.getenv("SIGNING_STORE_TYPE")
+      ?: project.findProperty("RELEASE_STORE_TYPE")?.toString()
+      ?: project.findProperty("STORE_TYPE")?.toString()
+      ?: detectedStoreType
+
   signingConfigs {
     create("release") {
       storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
-      storeType = detectedStoreType
+      storePassword = signingStorePassword
+      keyAlias = signingKeyAlias
+      keyPassword = signingKeyPassword
+      storeType = signingStoreType
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
-      storePassword = "android"
-      keyAlias = "androiddebugkey"
-      keyPassword = "android"
-      storeType = detectedStoreType
+      storePassword = signingStorePassword
+      keyAlias = signingKeyAlias
+      keyPassword = signingKeyPassword
+      storeType = signingStoreType
     }
   }
 

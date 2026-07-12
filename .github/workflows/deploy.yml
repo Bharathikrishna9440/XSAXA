@@ -121,6 +121,11 @@ jobs:
 
     # We compile the automated release APK using the dynamically determined versionCode and versionName
     - name: Compile Automated Release APK
+      env:
+        RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS || secrets.KEY_ALIAS || secrets.SIGNING_KEY_ALIAS }}
+        RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD || secrets.KEY_PASSWORD || secrets.SIGNING_KEY_PASSWORD }}
+        RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD || secrets.STORE_PASSWORD || secrets.SIGNING_STORE_PASSWORD }}
+        RELEASE_STORE_TYPE: ${{ secrets.RELEASE_STORE_TYPE || secrets.STORE_TYPE || secrets.SIGNING_STORE_TYPE }}
       run: ./gradlew assembleRelease -PcustomVersionCode=${{ env.VERSION_CODE }} -PcustomVersionName="${{ env.VERSION_NAME }}"
 
     - name: Distribute Release APK to Firebase App Distribution
