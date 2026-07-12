@@ -64,32 +64,32 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  val signingKeyAlias = System.getenv("RELEASE_KEY_ALIAS")
-      ?: System.getenv("KEY_ALIAS")
-      ?: System.getenv("SIGNING_KEY_ALIAS")
-      ?: project.findProperty("RELEASE_KEY_ALIAS")?.toString()
-      ?: project.findProperty("KEY_ALIAS")?.toString()
+  val signingKeyAlias = System.getenv("RELEASE_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("KEY_ALIAS")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("SIGNING_KEY_ALIAS")?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("RELEASE_KEY_ALIAS")?.toString()?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("KEY_ALIAS")?.toString()?.takeIf { it.isNotBlank() }
       ?: "androiddebugkey"
 
-  val signingKeyPassword = System.getenv("RELEASE_KEY_PASSWORD")
-      ?: System.getenv("KEY_PASSWORD")
-      ?: System.getenv("SIGNING_KEY_PASSWORD")
-      ?: project.findProperty("RELEASE_KEY_PASSWORD")?.toString()
-      ?: project.findProperty("KEY_PASSWORD")?.toString()
+  val signingKeyPassword = System.getenv("RELEASE_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("SIGNING_KEY_PASSWORD")?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("RELEASE_KEY_PASSWORD")?.toString()?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("KEY_PASSWORD")?.toString()?.takeIf { it.isNotBlank() }
       ?: "android"
 
-  val signingStorePassword = System.getenv("RELEASE_STORE_PASSWORD")
-      ?: System.getenv("STORE_PASSWORD")
-      ?: System.getenv("SIGNING_STORE_PASSWORD")
-      ?: project.findProperty("RELEASE_STORE_PASSWORD")?.toString()
-      ?: project.findProperty("STORE_PASSWORD")?.toString()
+  val signingStorePassword = System.getenv("RELEASE_STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("SIGNING_STORE_PASSWORD")?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("RELEASE_STORE_PASSWORD")?.toString()?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("STORE_PASSWORD")?.toString()?.takeIf { it.isNotBlank() }
       ?: "android"
 
-  val signingStoreType = System.getenv("RELEASE_STORE_TYPE")
-      ?: System.getenv("STORE_TYPE")
-      ?: System.getenv("SIGNING_STORE_TYPE")
-      ?: project.findProperty("RELEASE_STORE_TYPE")?.toString()
-      ?: project.findProperty("STORE_TYPE")?.toString()
+  val signingStoreType = System.getenv("RELEASE_STORE_TYPE")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("STORE_TYPE")?.takeIf { it.isNotBlank() }
+      ?: System.getenv("SIGNING_STORE_TYPE")?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("RELEASE_STORE_TYPE")?.toString()?.takeIf { it.isNotBlank() }
+      ?: project.findProperty("STORE_TYPE")?.toString()?.takeIf { it.isNotBlank() }
       ?: detectedStoreType
 
   signingConfigs {
