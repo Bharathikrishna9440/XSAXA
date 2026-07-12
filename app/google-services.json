@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "455008013486",
+    "firebase_url": "https://collection-app-2007-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "collection-app-2007",
+    "storage_bucket": "collection-app-2007.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:455008013486:android:531e28ee052201e9a5f13f",
+        "android_client_info": {
+          "package_name": "com.aistudio.weeklyfinance.khcrwt"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "455008013486-clrfq3pio0c8dpto9f7otumfuvc07ujh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aistudio.weeklyfinance.khcrwt",
+            "certificate_hash": "f616d702be7ccf80a559fc1c60879556173f1d21"
+          }
+        },
+        {
+          "client_id": "455008013486-hc11r12q29nj7if8ima40sq80v2f1h3v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAuCr6O-bKtLFqUQag6N_DLTKP16NF5RQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "455008013486-hc11r12q29nj7if8ima40sq80v2f1h3v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
