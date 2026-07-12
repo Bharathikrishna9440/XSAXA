@@ -213,9 +213,9 @@ object FirebaseUpdateManager {
             _latestVersionCode.value = latestCode
             _latestVersionName.value = latestName
             
-            val isUpdateAvailable = (latestCode > currentVersionCode || (manualCheck && latestCode != currentVersionCode)) && apkDownloadUrl.isNotEmpty()
+            val isUpdateAvailable = latestCode > currentVersionCode && apkDownloadUrl.isNotEmpty()
             if (isUpdateAvailable) {
-                Log.i(TAG, "New Update Detected! Server: v$latestCode, Local: v$currentVersionCode (Manual check: $manualCheck)")
+                Log.i(TAG, "New Update Detected! Server: v$latestCode, Local: v$currentVersionCode")
                 
                 // Check if we have already downloaded this specific update file
                 val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), "mdfinance-update-$latestCode.apk")

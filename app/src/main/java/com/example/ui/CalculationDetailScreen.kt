@@ -1,5 +1,6 @@
 package com.example.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -21,6 +22,8 @@ import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -324,6 +327,14 @@ fun CollectionDetailLayout(
     var showEditDialog by remember { mutableStateOf<PaymentDetailItem?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
+    var selectedMode by remember { mutableStateOf<String?>(null) }
+    var subSearchQuery by remember { mutableStateOf("") }
+
+    BackHandler(enabled = selectedMode != null) {
+        selectedMode = null
+        subSearchQuery = ""
+    }
+
     val cashCollectionSum = remember(items) {
         items.filter { item ->
             val cleanNotes = item.notes.trim()
@@ -346,6 +357,24 @@ fun CollectionDetailLayout(
     }
     val onlineCollectionSum = remember(items, cashCollectionSum) {
         items.sumOf { it.amount } - cashCollectionSum
+    }
+
+    fun isItemOnline(item: PaymentDetailItem): Boolean {
+        val cleanNotes = item.notes.trim()
+        return !item.upiTxnId.isNullOrBlank() || 
+               cleanNotes.contains("Online", ignoreCase = true) || 
+               cleanNotes.contains("UPI", ignoreCase = true) || 
+               cleanNotes.contains("GPay", ignoreCase = true) || 
+               cleanNotes.contains("PhonePe", ignoreCase = true) || 
+               cleanNotes.contains("Paytm", ignoreCase = true) || 
+               cleanNotes.contains("Bank", ignoreCase = true) ||
+               cleanNotes.contains("Google Pay", ignoreCase = true) ||
+               cleanNotes.contains("Phone Pe", ignoreCase = true) ||
+               cleanNotes.contains("IMPS", ignoreCase = true) ||
+               cleanNotes.contains("NEFT", ignoreCase = true) ||
+               cleanNotes.contains("RTGS", ignoreCase = true) ||
+               cleanNotes.contains("Net", ignoreCase = true) ||
+               cleanNotes.contains("Transfer", ignoreCase = true)
     }
 
     if (showEditDialog != null) {
@@ -395,297 +424,608 @@ fun CollectionDetailLayout(
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .padding(16.dp)
-    ) {
-        // Hero Card showing Total
-        Card(
+    if (selectedMode != null) {
+        val mode = selectedMode!!
+        val subPageItems = remember(items, mode, subSearchQuery) {
+            items.filter { item ->
+                val isOnline = isItemOnline(item)
+                val matchesMode = if (mode == "ONLINE") isOnline else !isOnline
+                val matchesQuery = subSearchQuery.isBlank() || 
+                                   item.customerName.contains(subSearchQuery, ignoreCase = true) || 
+                                   item.customerCode.contains(subSearchQuery, ignoreCase = true)
+                matchesMode && matchesQuery
+            }
+        }
+        val subSum = if (mode == "ONLINE") onlineCollectionSum else cashCollectionSum
+        val titleText = if (mode == "ONLINE") translate("Online Collections", language) else translate("Cash Collections", language)
+        val gradientColors = if (mode == "ONLINE") listOf(Color(0xFF1E3A8A), Color(0xFF1D4ED8)) else listOf(Color(0xFF065F46), Color(0xFF0F766E))
+
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
         ) {
-            Box(
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(
+                    onClick = { 
+                        selectedMode = null
+                        subSearchQuery = ""
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (appColors.isDark) Color.White else Color.Black
+                    )
+                }
+                Text(
+                    text = titleText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = if (appColors.isDark) Color.White else Color.Black
+                )
+            }
+
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B))
-                        )
-                    )
-                    .padding(24.dp)
+                    .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = translate("TOTAL COLLECTIONS", language),
-                        color = Color.LightGray,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
-                        letterSpacing = 1.sp
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.linearGradient(colors = gradientColors))
+                        .padding(20.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = translate("TOTAL", language),
+                            color = Color.LightGray.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "₹ ${String.format(Locale.US, "%,.2f", subSum)}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 28.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${subPageItems.size} " + translate("Instalments", language),
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = subSearchQuery,
+                onValueChange = { subSearchQuery = it },
+                placeholder = { Text(translate("Search customer...", language), color = Color.Gray, fontSize = 14.sp) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "₹ ${String.format(Locale.US, "%,.2f", totalSum)}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 32.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF22C55E).copy(alpha = 0.15f),
-                        border = RowBorderStroke(Color(0xFF22C55E))
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
+                },
+                trailingIcon = {
+                    if (subSearchQuery.isNotEmpty()) {
+                        IconButton(onClick = { subSearchQuery = "" }) {
                             Icon(
-                                imageVector = Icons.Filled.TrendingUp,
-                                contentDescription = null,
-                                tint = Color(0xFF22C55E),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "${items.size} " + translate("Instalments Received", language),
-                                color = Color(0xFF22C55E),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
+                },
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White,
+                    unfocusedContainerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White,
+                    focusedBorderColor = appColors.primaryAccent,
+                    unfocusedBorderColor = Color(0xFFCBD5E1),
+                    focusedTextColor = if (appColors.isDark) Color.White else Color.Black,
+                    unfocusedTextColor = if (appColors.isDark) Color.White else Color.Black
+                )
+            )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(horizontalAlignment = Alignment.Start) {
-                            Text(
-                                text = translate("Cash Received", language),
-                                color = Color.LightGray.copy(alpha = 0.8f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "₹ ${String.format(Locale.US, "%,.2f", cashCollectionSum)}",
-                                color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+            if (subPageItems.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = translate("No matching records found.", language),
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(subPageItems) { item ->
+                        val cleanNotes = item.notes.trim()
+                        val isOnline = isItemOnline(item)
+                        val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
+                        val modeText = when {
+                            isMultiple -> "MULTIPLE"
+                            isOnline -> "ONLINE"
+                            else -> "CASH"
+                        }
+                        val badgeBg = when (modeText) {
+                            "MULTIPLE" -> Color(0xFFF3E8FF)
+                            "ONLINE" -> Color(0xFFDBEAFE)
+                            else -> Color(0xFFDCFCE7)
+                        }
+                        val badgeContentColor = when (modeText) {
+                            "MULTIPLE" -> Color(0xFF5B21B6)
+                            "ONLINE" -> Color(0xFF1E3A8A)
+                            else -> Color(0xFF14532D)
+                        }
+                        val badgeIcon = when (modeText) {
+                            "MULTIPLE" -> Icons.Filled.Payments
+                            "ONLINE" -> Icons.Filled.AccountBalance
+                            else -> Icons.Filled.MonetizationOn
                         }
 
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = translate("Online Received", language),
-                                color = Color.LightGray.copy(alpha = 0.8f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "₹ ${String.format(Locale.US, "%,.2f", onlineCollectionSum)}",
-                                color = Color.White,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showEditDialog = item },
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White
+                            ),
+                            border = RowBorderStroke(if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Surface(
+                                            color = if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                                            shape = CircleShape
+                                        ) {
+                                            Text(
+                                                text = "${item.customOrder}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (appColors.isDark) Color.LightGray else Color.DarkGray,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = item.customerName,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 14.sp,
+                                            color = if (appColors.isDark) Color(0xFF60A5FA) else Color(0xFF1E3A8A),
+                                            modifier = Modifier.clickable {
+                                                viewModel.navigateTo(Screen.CustomerDetail(item.customerId))
+                                            }.padding(vertical = 4.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Surface(
+                                            color = (if (appColors.isDark) Color(0xFF475569) else Color(0xFFF1F5F9)),
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = item.customerCode,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                                color = if (appColors.isDark) Color.LightGray else Color.DarkGray
+                                            )
+                                        }
+                                        Text(
+                                            text = translate("Week", language) + " ${item.weekNumber}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (appColors.isDark) Color.White else Color.Black
+                                        )
+
+                                        Surface(
+                                            color = badgeBg,
+                                            shape = RoundedCornerShape(6.dp),
+                                            border = BorderStroke(1.dp, badgeContentColor.copy(alpha = 0.4f))
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = badgeIcon,
+                                                    contentDescription = modeText,
+                                                    tint = badgeContentColor,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Text(
+                                                    text = modeText,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = badgeContentColor,
+                                                    letterSpacing = 0.5.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (item.notes.isNotBlank() || !item.upiTxnId.isNullOrBlank()) {
+                                        val displayNotes = if (!item.upiTxnId.isNullOrBlank()) {
+                                            "UPI ID: ${item.upiTxnId}"
+                                        } else {
+                                            val filterPrefix = item.notes.replace("Cash", "", ignoreCase = true)
+                                                .replace("Online", "", ignoreCase = true)
+                                                .replace("-", "")
+                                                .trim()
+                                            if (filterPrefix.isNotBlank()) "Notes: $filterPrefix" else ""
+                                        }
+                                        if (displayNotes.isNotBlank()) {
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text(
+                                                text = displayNotes,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (appColors.isDark) Color.White else Color(0xFF0F172A),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                }
+                                Text(
+                                    text = "₹ ${String.format(Locale.US, "%,.0f", item.amount)}",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 17.sp,
+                                    color = if (appColors.isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
-
-        Text(
-            text = translate("Instalment Log Breakdown", language),
-            fontWeight = FontWeight.Bold,
-            fontSize = 14.sp,
-            color = if (appColors.isDark) Color.White else Color.Black,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        if (items.isEmpty()) {
-            Box(
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                contentAlignment = Alignment.Center
+                    .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(
-                        imageVector = Icons.Filled.ReceiptLong,
-                        contentDescription = null,
-                        tint = Color.Gray,
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Text(
-                        text = translate("No collections made today.", language),
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(items) { item ->
-                    val cleanNotes = item.notes.trim()
-                    val isOnline = cleanNotes.startsWith("Online", ignoreCase = true) || !item.upiTxnId.isNullOrBlank()
-                    val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
-                    val modeText = when {
-                        isMultiple -> "MULTIPLE"
-                        isOnline -> "ONLINE"
-                        else -> "CASH"
-                    }
-                    val badgeBg = when (modeText) {
-                        "MULTIPLE" -> Color(0xFFF3E8FF)
-                        "ONLINE" -> Color(0xFFDBEAFE)
-                        else -> Color(0xFFDCFCE7)
-                    }
-                    val badgeContentColor = when (modeText) {
-                        "MULTIPLE" -> Color(0xFF5B21B6)
-                        "ONLINE" -> Color(0xFF1E3A8A)
-                        else -> Color(0xFF14532D)
-                    }
-                    val badgeIcon = when (modeText) {
-                        "MULTIPLE" -> Icons.Filled.Payments
-                        "ONLINE" -> Icons.Filled.AccountBalance
-                        else -> Icons.Filled.MonetizationOn
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B))
+                            )
+                        )
+                        .padding(24.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = translate("TOTAL COLLECTIONS", language),
+                            color = Color.LightGray,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "₹ ${String.format(Locale.US, "%,.2f", totalSum)}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 32.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFF22C55E).copy(alpha = 0.15f),
+                            border = RowBorderStroke(Color(0xFF22C55E))
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.TrendingUp,
+                                    contentDescription = null,
+                                    tint = Color(0xFF22C55E),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "${items.size} " + translate("Instalments Received", language),
+                                    color = Color(0xFF22C55E),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
 
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showEditDialog = item },
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White
-                        ),
-                        border = RowBorderStroke(if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
-                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        color = if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
-                                        shape = CircleShape
-                                    ) {
-                                        Text(
-                                            text = "${item.customOrder}",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (appColors.isDark) Color.LightGray else Color.DarkGray,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                    Text(
-                                        text = item.customerName,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 14.sp,
-                                        color = if (appColors.isDark) Color(0xFF60A5FA) else Color(0xFF1E3A8A),
-                                        modifier = Modifier.clickable {
-                                            viewModel.navigateTo(Screen.CustomerDetail(item.customerId))
-                                        }.padding(vertical = 4.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Surface(
-                                        color = (if (appColors.isDark) Color(0xFF475569) else Color(0xFFF1F5F9)),
-                                        shape = RoundedCornerShape(4.dp)
-                                    ) {
-                                        Text(
-                                            text = item.customerCode,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
-                                            color = if (appColors.isDark) Color.LightGray else Color.DarkGray
-                                        )
-                                    }
-                                    Text(
-                                        text = translate("Week", language) + " ${item.weekNumber}",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (appColors.isDark) Color.White else Color.Black
-                                    )
+                            Column(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { selectedMode = "CASH" }
+                                    .padding(8.dp),
+                                horizontalAlignment = Alignment.Start
+                            ) {
+                                Text(
+                                    text = translate("Cash Received ↗", language),
+                                    color = Color.LightGray.copy(alpha = 0.8f),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "₹ ${String.format(Locale.US, "%,.2f", cashCollectionSum)}",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
 
-                                    Surface(
-                                        color = badgeBg,
-                                        shape = RoundedCornerShape(6.dp),
-                                        border = BorderStroke(1.dp, badgeContentColor.copy(alpha = 0.4f))
+                            Column(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { selectedMode = "ONLINE" }
+                                    .padding(8.dp),
+                                horizontalAlignment = Alignment.End
+                            ) {
+                                Text(
+                                    text = translate("Online Received ↗", language),
+                                    color = Color.LightGray.copy(alpha = 0.8f),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "₹ ${String.format(Locale.US, "%,.2f", onlineCollectionSum)}",
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = translate("Instalment Log Breakdown", language),
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = if (appColors.isDark) Color.White else Color.Black,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            if (items.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Icon(
+                            imageVector = Icons.Filled.ReceiptLong,
+                            contentDescription = null,
+                            tint = Color.Gray,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = translate("No collections made today.", language),
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(items) { item ->
+                        val cleanNotes = item.notes.trim()
+                        val isOnline = isItemOnline(item)
+                        val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
+                        val modeText = when {
+                            isMultiple -> "MULTIPLE"
+                            isOnline -> "ONLINE"
+                            else -> "CASH"
+                        }
+                        val badgeBg = when (modeText) {
+                            "MULTIPLE" -> Color(0xFFF3E8FF)
+                            "ONLINE" -> Color(0xFFDBEAFE)
+                            else -> Color(0xFFDCFCE7)
+                        }
+                        val badgeContentColor = when (modeText) {
+                            "MULTIPLE" -> Color(0xFF5B21B6)
+                            "ONLINE" -> Color(0xFF1E3A8A)
+                            else -> Color(0xFF14532D)
+                        }
+                        val badgeIcon = when (modeText) {
+                            "MULTIPLE" -> Icons.Filled.Payments
+                            "ONLINE" -> Icons.Filled.AccountBalance
+                            else -> Icons.Filled.MonetizationOn
+                        }
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showEditDialog = item },
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White
+                            ),
+                            border = RowBorderStroke(if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        Surface(
+                                            color = if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                                            shape = CircleShape
                                         ) {
-                                            Icon(
-                                                imageVector = badgeIcon,
-                                                contentDescription = modeText,
-                                                tint = badgeContentColor,
-                                                modifier = Modifier.size(12.dp)
-                                            )
                                             Text(
-                                                text = modeText,
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Black,
-                                                color = badgeContentColor,
-                                                letterSpacing = 0.5.sp
+                                                text = "${item.customOrder}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (appColors.isDark) Color.LightGray else Color.DarkGray,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = item.customerName,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 14.sp,
+                                            color = if (appColors.isDark) Color(0xFF60A5FA) else Color(0xFF1E3A8A),
+                                            modifier = Modifier.clickable {
+                                                viewModel.navigateTo(Screen.CustomerDetail(item.customerId))
+                                            }.padding(vertical = 4.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Surface(
+                                            color = (if (appColors.isDark) Color(0xFF475569) else Color(0xFFF1F5F9)),
+                                            shape = RoundedCornerShape(4.dp)
+                                        ) {
+                                            Text(
+                                                text = item.customerCode,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                                color = if (appColors.isDark) Color.LightGray else Color.DarkGray
+                                            )
+                                        }
+                                        Text(
+                                            text = translate("Week", language) + " ${item.weekNumber}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (appColors.isDark) Color.White else Color.Black
+                                        )
+
+                                        Surface(
+                                            color = badgeBg,
+                                            shape = RoundedCornerShape(6.dp),
+                                            border = BorderStroke(1.dp, badgeContentColor.copy(alpha = 0.4f))
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = badgeIcon,
+                                                    contentDescription = modeText,
+                                                    tint = badgeContentColor,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Text(
+                                                    text = modeText,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Black,
+                                                    color = badgeContentColor,
+                                                    letterSpacing = 0.5.sp
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (item.notes.isNotBlank() || !item.upiTxnId.isNullOrBlank()) {
+                                        val displayNotes = if (!item.upiTxnId.isNullOrBlank()) {
+                                            "UPI ID: ${item.upiTxnId}"
+                                        } else {
+                                            val filterPrefix = item.notes.replace("Cash", "", ignoreCase = true)
+                                                .replace("Online", "", ignoreCase = true)
+                                                .replace("-", "")
+                                                .trim()
+                                            if (filterPrefix.isNotBlank()) "Notes: $filterPrefix" else ""
+                                        }
+                                        if (displayNotes.isNotBlank()) {
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text(
+                                                text = displayNotes,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (appColors.isDark) Color.White else Color(0xFF0F172A),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
                                             )
                                         }
                                     }
                                 }
-                                if (item.notes.isNotBlank() || !item.upiTxnId.isNullOrBlank()) {
-                                    val displayNotes = if (!item.upiTxnId.isNullOrBlank()) {
-                                        "UPI ID: ${item.upiTxnId}"
-                                    } else {
-                                        val filterPrefix = item.notes.replace("Cash", "", ignoreCase = true)
-                                            .replace("Online", "", ignoreCase = true)
-                                            .replace("-", "")
-                                            .trim()
-                                        if (filterPrefix.isNotBlank()) "Notes: $filterPrefix" else ""
-                                    }
-                                    if (displayNotes.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = displayNotes,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (appColors.isDark) Color.White else Color(0xFF0F172A),
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = "₹ ${String.format(Locale.US, "%,.0f", item.amount)}",
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 17.sp,
+                                    color = if (appColors.isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
+                                )
                             }
-                            Text(
-                                text = "₹ ${String.format(Locale.US, "%,.0f", item.amount)}",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 17.sp,
-                                color = if (appColors.isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
-                            )
                         }
                     }
                 }
@@ -703,6 +1043,67 @@ fun DisbursalDetailLayout(
     language: String,
     viewModel: FinanceViewModel
 ) {
+    var selectedMode by remember { mutableStateOf<String?>(null) }
+    var subSearchQuery by remember { mutableStateOf("") }
+
+    BackHandler(enabled = selectedMode != null) {
+        selectedMode = null
+        subSearchQuery = ""
+    }
+
+    fun getDisbursalSplit(item: DisbursalDetailItem): Pair<Double, Double> {
+        val notes = item.notes.trim()
+        if (notes.startsWith("Multiple - ", ignoreCase = true)) {
+            try {
+                val cashMarker = "Cash: ₹"
+                val onlineMarker = "Online: ₹"
+                val cashStart = notes.indexOf(cashMarker)
+                val onlineStart = notes.indexOf(onlineMarker)
+                if (cashStart != -1 && onlineStart != -1) {
+                    val endOfCash = notes.indexOf(",", cashStart)
+                    val cashStr = if (endOfCash != -1) {
+                        notes.substring(cashStart + cashMarker.length, endOfCash).trim()
+                    } else {
+                        "0"
+                    }
+                    
+                    val endOfOnline = notes.indexOf(".", onlineStart)
+                    val onlineStr = if (endOfOnline != -1) {
+                        notes.substring(onlineStart + onlineMarker.length, endOfOnline).trim()
+                    } else {
+                        "0"
+                    }
+                    
+                    val cashVal = cashStr.toDoubleOrNull() ?: 0.0
+                    val onlineVal = onlineStr.toDoubleOrNull() ?: 0.0
+                    return Pair(cashVal, onlineVal)
+                }
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+        
+        val isOnline = notes.contains("Online", ignoreCase = true) || 
+                       notes.contains("UPI", ignoreCase = true) || 
+                       notes.contains("GPay", ignoreCase = true) || 
+                       notes.contains("PhonePe", ignoreCase = true) || 
+                       notes.contains("Paytm", ignoreCase = true) || 
+                       notes.contains("Bank", ignoreCase = true) ||
+                       notes.contains("Google Pay", ignoreCase = true) ||
+                       notes.contains("Phone Pe", ignoreCase = true) ||
+                       notes.contains("IMPS", ignoreCase = true) ||
+                       notes.contains("NEFT", ignoreCase = true) ||
+                       notes.contains("RTGS", ignoreCase = true) ||
+                       notes.contains("Net", ignoreCase = true) ||
+                       notes.contains("Transfer", ignoreCase = true)
+        
+        return if (isOnline) {
+            Pair(0.0, item.actualDisbursed)
+        } else {
+            Pair(item.actualDisbursed, 0.0)
+        }
+    }
+
     val disbursalSplit = remember(items) {
         var cashSum = 0.0
         var onlineSum = 0.0
@@ -765,12 +1166,328 @@ fun DisbursalDetailLayout(
     val cashDisbursalSum = disbursalSplit.first
     val onlineDisbursalSum = disbursalSplit.second
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .padding(16.dp)
-    ) {
+    if (selectedMode != null) {
+        val mode = selectedMode!!
+        val subPageItems = remember(items, mode, subSearchQuery) {
+            items.map { item ->
+                val (cash, online) = getDisbursalSplit(item)
+                val targetAmt = if (mode == "ONLINE") online else cash
+                Pair(item, targetAmt)
+            }.filter { (item, amt) ->
+                val matchesMode = amt > 0.0
+                val matchesQuery = subSearchQuery.isBlank() || 
+                                   item.customerName.contains(subSearchQuery, ignoreCase = true) || 
+                                   item.customerCode.contains(subSearchQuery, ignoreCase = true)
+                matchesMode && matchesQuery
+            }
+        }
+        val subSum = if (mode == "ONLINE") onlineDisbursalSum else cashDisbursalSum
+        val titleText = if (mode == "ONLINE") translate("Online Disbursals", language) else translate("Cash Disbursals", language)
+        val gradientColors = if (mode == "ONLINE") listOf(Color(0xFF312E81), Color(0xFF4338CA)) else listOf(Color(0xFF831843), Color(0xFF9D174D))
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                IconButton(
+                    onClick = { 
+                        selectedMode = null
+                        subSearchQuery = ""
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = if (appColors.isDark) Color.White else Color.Black
+                    )
+                }
+                Text(
+                    text = titleText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = if (appColors.isDark) Color.White else Color.Black
+                )
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.linearGradient(colors = gradientColors))
+                        .padding(20.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = translate("TOTAL NET", language),
+                            color = Color.LightGray.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "₹ ${String.format(Locale.US, "%,.2f", subSum)}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 28.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "${subPageItems.size} " + translate("Contracts", language),
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
+            OutlinedTextField(
+                value = subSearchQuery,
+                onValueChange = { subSearchQuery = it },
+                placeholder = { Text(translate("Search customer...", language), color = Color.Gray, fontSize = 14.sp) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                trailingIcon = {
+                    if (subSearchQuery.isNotEmpty()) {
+                        IconButton(onClick = { subSearchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = Color.Gray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White,
+                    unfocusedContainerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White,
+                    focusedBorderColor = appColors.primaryAccent,
+                    unfocusedBorderColor = Color(0xFFCBD5E1),
+                    focusedTextColor = if (appColors.isDark) Color.White else Color.Black,
+                    unfocusedTextColor = if (appColors.isDark) Color.White else Color.Black
+                )
+            )
+
+            if (subPageItems.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = translate("No matching records found.", language),
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(subPageItems) { (item, amt) ->
+                        val cleanNotes = item.notes.trim()
+                        val isOnline = cleanNotes.startsWith("Online", ignoreCase = true)
+                        val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
+                        val modeText = when {
+                            isMultiple -> "MULTIPLE"
+                            isOnline -> "ONLINE"
+                            else -> "CASH"
+                        }
+                        val badgeBg = when (modeText) {
+                            "MULTIPLE" -> Color(0xFFF3E8FF)
+                            "ONLINE" -> Color(0xFFDBEAFE)
+                            else -> Color(0xFFDCFCE7)
+                        }
+                        val badgeContentColor = when (modeText) {
+                            "MULTIPLE" -> Color(0xFF5B21B6)
+                            "ONLINE" -> Color(0xFF1E3A8A)
+                            else -> Color(0xFF14532D)
+                        }
+                        val badgeIcon = when (modeText) {
+                            "MULTIPLE" -> Icons.Filled.Payments
+                            "ONLINE" -> Icons.Filled.AccountBalance
+                            else -> Icons.Filled.MonetizationOn
+                        }
+                        val labelColor = if (appColors.isDark) Color(0xFF94A3B8) else Color(0xFF475569)
+                        val valueColor = if (appColors.isDark) Color.White else Color(0xFF0F172A)
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (appColors.isDark) Color(0xFF1E293B) else Color.White
+                            ),
+                            border = RowBorderStroke(if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0))
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Surface(
+                                                color = if (appColors.isDark) Color(0xFF334155) else Color(0xFFE2E8F0),
+                                                shape = CircleShape
+                                            ) {
+                                                Text(
+                                                    text = "${item.customOrder}",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (appColors.isDark) Color.LightGray else Color.DarkGray,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                            Text(
+                                                text = item.customerName,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 14.sp,
+                                                color = if (appColors.isDark) Color(0xFF60A5FA) else Color(0xFF1E3A8A),
+                                                modifier = Modifier.clickable {
+                                                    viewModel.navigateTo(Screen.CustomerDetail(item.customerId))
+                                                }.padding(vertical = 4.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Surface(
+                                                color = (if (appColors.isDark) Color(0xFF475569) else Color(0xFFF1F5F9)),
+                                                shape = RoundedCornerShape(4.dp),
+                                                modifier = Modifier.wrapContentSize()
+                                            ) {
+                                                Text(
+                                                    text = item.customerCode,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+                                                    color = if (appColors.isDark) Color.LightGray else Color.DarkGray
+                                                )
+                                            }
+
+                                            Surface(
+                                                color = badgeBg,
+                                                shape = RoundedCornerShape(6.dp),
+                                                border = BorderStroke(1.dp, badgeContentColor.copy(alpha = 0.4f))
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = badgeIcon,
+                                                        contentDescription = modeText,
+                                                        tint = badgeContentColor,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                    Text(
+                                                        text = modeText,
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Black,
+                                                        color = badgeContentColor,
+                                                        letterSpacing = 0.5.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            text = "₹ ${String.format(Locale.US, "%,.0f", amt)}",
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 17.sp,
+                                            color = Color(0xFFEF4444),
+                                            modifier = Modifier.clickable {
+                                                viewModel.navigateTo(Screen.EditLoan(item.loanCycleId))
+                                            }.padding(4.dp)
+                                        )
+                                        Text(
+                                            text = if (mode == "ONLINE") translate("Online Portion", language) else translate("Cash Portion", language),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = labelColor
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(12.dp))
+                                HorizontalDivider(color = if (appColors.isDark) Color(0xFF334155) else Color(0xFFF1F5F9))
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(translate("Loan Principal", language), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = labelColor)
+                                        Text("₹ ${String.format(Locale.US, "%,.0f", item.loanAmount)}", fontWeight = FontWeight.Black, fontSize = 12.sp, color = valueColor)
+                                    }
+                                    Column {
+                                        Text(translate("Interest", language), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = labelColor)
+                                        Text("₹ ${String.format(Locale.US, "%,.0f", item.interestAmount)}", fontWeight = FontWeight.Black, fontSize = 12.sp, color = valueColor)
+                                    }
+                                    Column {
+                                        Text(translate("Deduction", language), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = labelColor)
+                                        Text("₹ ${String.format(Locale.US, "%,.0f", item.deduction)}", fontWeight = FontWeight.Black, fontSize = 12.sp, color = valueColor)
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(translate("Weekly Due", language), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = labelColor)
+                                        Text("₹ ${String.format(Locale.US, "%,.0f", item.weeklyAmount)} /wk", fontWeight = FontWeight.Black, fontSize = 12.sp, color = valueColor)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
         // Hero Card showing Total
         Card(
             modifier = Modifier
@@ -837,12 +1554,18 @@ fun DisbursalDetailLayout(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(horizontalAlignment = Alignment.Start) {
+                        Column(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { selectedMode = "CASH" }
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
                             Text(
-                                text = translate("Cash Disbursed", language),
+                                text = translate("Cash Disbursed ↗", language),
                                 color = Color.LightGray.copy(alpha = 0.8f),
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Normal
+                                fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
@@ -853,12 +1576,18 @@ fun DisbursalDetailLayout(
                             )
                         }
 
-                        Column(horizontalAlignment = Alignment.End) {
+                        Column(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { selectedMode = "ONLINE" }
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.End
+                        ) {
                             Text(
-                                text = translate("Online Disbursed", language),
+                                text = translate("Online Disbursed ↗", language),
                                 color = Color.LightGray.copy(alpha = 0.8f),
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Normal
+                                fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
@@ -1076,6 +1805,8 @@ fun DisbursalDetailLayout(
             }
         }
     }
+}
+
 }
 
 @Composable

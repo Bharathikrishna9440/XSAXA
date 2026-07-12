@@ -451,7 +451,11 @@ fun WeeklyFinanceApp(
             if (showUpdateDialog && (updateStatus == com.example.network.UpdateStatus.UPDATE_AVAILABLE || 
                                      updateStatus == com.example.network.UpdateStatus.DOWNLOADED)) {
                 AlertDialog(
-                    onDismissRequest = { showUpdateDialog = false },
+                    onDismissRequest = { /* Force update - cannot dismiss */ },
+                    properties = androidx.compose.ui.window.DialogProperties(
+                        dismissOnBackPress = false,
+                        dismissOnClickOutside = false
+                    ),
                     containerColor = Color.White,
                     titleContentColor = Color.Black,
                     textContentColor = Color.Black,
@@ -491,7 +495,7 @@ fun WeeklyFinanceApp(
                                     modifier = Modifier.padding(12.dp).fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    val latestCode = if (updateStatus == com.example.network.UpdateStatus.UPDATE_AVAILABLE) com.example.network.FirebaseUpdateManager.latestVersionCode.value else -1
+                                    val latestCode = if (updateStatus == com.example.network.UpdateStatus.UPDATE_AVAILABLE || updateStatus == com.example.network.UpdateStatus.DOWNLOADED) com.example.network.FirebaseUpdateManager.latestVersionCode.value else -1
                                     Text(
                                         text = "${translate("Latest Version", language)}: Build $latestCode",
                                         fontWeight = FontWeight.Bold,
@@ -529,18 +533,6 @@ fun WeeklyFinanceApp(
                                 text = if (updateStatus == com.example.network.UpdateStatus.DOWNLOADED) translate("Install Now", language) else translate("Downloading...", language),
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold
-                            )
-                        }
-                    },
-                    dismissButton = {
-                        OutlinedButton(
-                            shape = RoundedCornerShape(8.dp),
-                            onClick = { showUpdateDialog = false }
-                        ) {
-                            Text(
-                                text = translate("Later", language),
-                                color = Color(0xFF64748B),
-                                fontWeight = FontWeight.Medium
                             )
                         }
                     }

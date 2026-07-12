@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
     FirebaseConnectionManager.initializeSilentCloudConnection(
         onSuccess = {
             Log.i("Main", "Cloud sync engine warmed up and standing by.")
-            FirebaseUpdateManager.checkForCloudUpdates(this@MainActivity)
+            FirebaseUpdateManager.checkForCloudUpdates(this@MainActivity, manualCheck = true)
             
             // Schedule unique periodic background update check every 1 hour
             try {
@@ -191,7 +191,7 @@ class MainActivity : ComponentActivity() {
   override fun onResume() {
     super.onResume()
     try {
-      FirebaseUpdateManager.checkForCloudUpdates(this)
+      FirebaseUpdateManager.checkForCloudUpdates(this, manualCheck = true)
     } catch (e: Exception) {
       Log.e("Main", "OnResume update check failed: ${e.message}")
     }
