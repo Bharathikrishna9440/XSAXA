@@ -404,8 +404,10 @@ fun CustomerDetailScreen(
                         showCallAlert = false
                         try {
                             val targetNumber = if (customer.phone2.isNotBlank()) selectedCallPhone else customer.phone
+                            val cleanNumber = targetNumber.trim().filter { it.isDigit() || it == '+' || it == '*' || it == '#' }
                             val intent = Intent(Intent.ACTION_DIAL).apply {
-                                data = Uri.parse("tel:$targetNumber")
+                                data = Uri.parse("tel:$cleanNumber")
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             }
                             context.startActivity(intent)
                         } catch (e: Exception) {
@@ -474,7 +476,8 @@ fun CustomerDetailScreen(
                 Button(
                     onClick = {
                         showSmsAlert = false
-                        val targetNumber = if (customer.phone2.isNotBlank()) selectedSmsPhone else customer.phone
+                        val rawNumber = if (customer.phone2.isNotBlank()) selectedSmsPhone else customer.phone
+                        val targetNumber = rawNumber.trim().filter { it.isDigit() || it == '+' || it == '*' || it == '#' }
                         if (firstActive != null) {
                             viewModel.triggerManualReminderSms(customer, firstActive, targetNumber)
                         } else {
@@ -482,6 +485,7 @@ fun CustomerDetailScreen(
                                 val smsIntent = Intent(Intent.ACTION_SENDTO).apply {
                                     data = Uri.parse("smsto:$targetNumber")
                                     putExtra("sms_body", "Hi ${customer.name}, this is a gentle reminder regarding your outstanding weekly balance.")
+                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 }
                                 context.startActivity(smsIntent)
                             } catch (e: Exception) {
