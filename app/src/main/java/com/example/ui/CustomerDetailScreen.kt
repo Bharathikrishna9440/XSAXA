@@ -1198,7 +1198,7 @@ fun CustomerDetailScreen(
             ) {
                 // Gradient box contents
                 Column(
-                    modifier = Modifier.padding(18.dp)
+                    modifier = Modifier.padding(12.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1245,7 +1245,7 @@ fun CustomerDetailScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // Dividing Lime green animated progress bar between outstanding and principal+interest text
                     val limeColor = Color(0xFF84CC16) // Lime Green
@@ -1253,13 +1253,13 @@ fun CustomerDetailScreen(
                         progress = { progress.coerceIn(0f, 1f) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(6.dp)
+                            .height(4.dp)
                             .clip(CircleShape),
                         color = limeColor,
                         trackColor = if (appColors.isDark) Color.White.copy(alpha = 0.2f) else appColors.textOnHeader.copy(alpha = 0.15f)
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1303,12 +1303,12 @@ fun CustomerDetailScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     HorizontalDivider(
                         color = if (appColors.isDark) Color.DarkGray else appColors.textOnHeader.copy(alpha = 0.15f),
                         thickness = 0.5.dp
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1350,7 +1350,7 @@ fun CustomerDetailScreen(
                     }
 
                     if (activeLoan.deduction > 0.0) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1391,16 +1391,7 @@ fun CustomerDetailScreen(
                         }
                     }
 
-                    if (lastPaymentInfo != null) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "${translate("Last Payment", language)}: $lastPaymentInfo",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (appColors.isDark) Color.LightGray else appColors.textOnHeader.copy(alpha = 0.85f),
-                            modifier = Modifier.testTag("customer_last_payment")
-                        )
-                    }
+                    // Last payment info removed per request
                 }
             }
 
