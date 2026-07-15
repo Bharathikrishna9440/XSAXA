@@ -2397,8 +2397,8 @@ fun CustomerOverviewCard(
                                                      (diff in 0..2) && 
                                                      !actualHasPaymentInPast2Days
 
-                                val shakeOffset = if (needsAttention) translationX else 0f
                                 val showRedMultiple = needsAttention && isCurrentDayMyDay
+                                val shakeOffset = if (showRedMultiple) translationX else 0f
 
                                 if (todayPaidAmt != null) {
                                     Text(

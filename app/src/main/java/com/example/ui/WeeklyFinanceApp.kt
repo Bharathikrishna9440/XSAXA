@@ -821,7 +821,8 @@ fun WeeklyFinanceApp(
                                                 if (customerLoans.isNotEmpty()) {
                                                     HorizontalDivider()
                                                     customerLoans.forEachIndexed { index, loan ->
-                                                        val label = "Loan ${index + 1}"
+                                                        val activeLoansCount = customerLoans.count { it.status == "ACTIVE" }
+                                                        val label = if (activeLoansCount <= 1 && (index + 1) == 1) "Loan" else "Loan ${index + 1}"
                                                         val isLoanActive = loan.status == "ACTIVE"
                                                         val statusLabel = if (isLoanActive) "Active" else "Settled"
                                                         

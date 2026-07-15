@@ -1218,7 +1218,7 @@ fun CustomerDetailScreen(
                                     color = appColors.textOnHeader,
                                     letterSpacing = 1.5.sp
                                 )
-                                if (activeLoan.id != -1) {
+                                if (activeLoan.id != -1 && activeLoans.size > 1) {
                                     val loanIndex = allCustomerLoans.indexOfFirst { it.id == activeLoan.id }
                                     Box(
                                         modifier = Modifier
@@ -1627,11 +1627,29 @@ fun CustomerDetailScreen(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    if (currentUserRole != "USER") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = { viewModel.navigateTo(Screen.AddLoan(customer.id)) },
+                                colors = ButtonDefaults.buttonColors(containerColor = ColorAccentBlue),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Additional Loan", color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                    }
                     activeLoans.forEach { targetActiveLoan ->
                         val activePayments = customerPayments.filter { it.loanCycleId == targetActiveLoan.id }
                         val allCustomerLoansSorted = remember(loanCycles) { loanCycles.sortedBy { it.id } }
                         val loanIndex = allCustomerLoansSorted.indexOfFirst { it.id == targetActiveLoan.id }
-                        val loanLabel = "Loan ${loanIndex + 1}"
+                        val loanLabel = if (activeLoans.size <= 1) "Active Loan" else "Loan ${loanIndex + 1}"
 
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -1711,7 +1729,7 @@ fun CustomerDetailScreen(
                         val historicPayments = customerPayments.filter { it.loanCycleId == historicCycle.id }
                         val allCustomerLoansSorted = remember(loanCycles) { loanCycles.sortedBy { it.id } }
                         val loanIndex = allCustomerLoansSorted.indexOfFirst { it.id == historicCycle.id }
-                        val loanLabel = "Loan ${loanIndex + 1}"
+                        val loanLabel = if (activeLoans.size <= 1 && (loanIndex + 1) == 1) "Past Loan" else "Loan ${loanIndex + 1}"
                         HistoricLoanCard(
                             historicCycle = historicCycle,
                             payments = historicPayments,
