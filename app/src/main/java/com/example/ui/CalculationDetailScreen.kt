@@ -802,7 +802,7 @@ fun CollectionDetailLayout(
                                 horizontalAlignment = Alignment.Start
                             ) {
                                 Text(
-                                    text = translate("Cash Received ↗", language),
+                                    text = translate("Cash", language),
                                     color = Color.LightGray.copy(alpha = 0.8f),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
@@ -824,7 +824,7 @@ fun CollectionDetailLayout(
                                 horizontalAlignment = Alignment.End
                             ) {
                                 Text(
-                                    text = translate("Online Received ↗", language),
+                                    text = translate("Online", language),
                                     color = Color.LightGray.copy(alpha = 0.8f),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
@@ -1563,7 +1563,7 @@ fun DisbursalDetailLayout(
                             horizontalAlignment = Alignment.Start
                         ) {
                             Text(
-                                text = translate("Cash Disbursed ↗", language),
+                                text = translate("Cash", language),
                                 color = Color.LightGray.copy(alpha = 0.8f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -1590,7 +1590,7 @@ fun DisbursalDetailLayout(
                             horizontalAlignment = Alignment.End
                         ) {
                             Text(
-                                text = translate("Online Disbursed ↗", language),
+                                text = translate("Online", language),
                                 color = Color.LightGray.copy(alpha = 0.8f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
