@@ -1556,6 +1556,7 @@ fun DisbursalDetailLayout(
                     ) {
                         Column(
                             modifier = Modifier
+                                .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable { selectedMode = "CASH" }
                                 .padding(8.dp),
@@ -1565,19 +1566,24 @@ fun DisbursalDetailLayout(
                                 text = translate("Cash Disbursed ↗", language),
                                 color = Color.LightGray.copy(alpha = 0.8f),
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "₹ ${String.format(Locale.US, "%,.2f", cashDisbursalSum)}",
                                 color = Color.White,
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
                         Column(
                             modifier = Modifier
+                                .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable { selectedMode = "ONLINE" }
                                 .padding(8.dp),
@@ -1587,14 +1593,18 @@ fun DisbursalDetailLayout(
                                 text = translate("Online Disbursed ↗", language),
                                 color = Color.LightGray.copy(alpha = 0.8f),
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "₹ ${String.format(Locale.US, "%,.2f", onlineDisbursalSum)}",
                                 color = Color.White,
                                 fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }

@@ -68,7 +68,7 @@ object CsvBackupHelper {
             val phoneVal = if (cust.phone2.isNotBlank()) "${cust.phone} / ${cust.phone2}" else cust.phone
             val safePhone = escapeCsv(phoneVal)
             val safeCity = escapeCsv(cust.city)
-            val smsSettings = "Weekly Reminder: ${if (cust.smsWeeklyReminder) "YES" else "NO"}, Entry Confirmation: ${if (cust.smsConfirmationOfEntry) "YES" else "NO"}"
+            val smsSettings = "Weekly Reminder: ${if (cust.smsWeeklyReminder) "YES" else "NO"}, Entry Confirmation: ${if (cust.smsConfirmationOfEntry) "YES" else "NO"}, Auto Weekly SMS: ${if (cust.autoWeeklySms) "YES" else "NO"}, Auto Weekly Whatsapp: ${if (cust.autoWeeklyWhatsapp) "YES" else "NO"}, UPI Name Alias: ${cust.upiNameAlias}, Preferred Language: ${cust.preferredLanguage}"
             val safeSmsSettings = escapeCsv(smsSettings)
 
             val custCycles = validLoanCycles.filter { it.customerId == cust.id }.sortedByDescending { it.id }
@@ -86,17 +86,38 @@ object CsvBackupHelper {
                     val amountDisbursed = (cycle.loanAmount - cycle.deduction).toString()
                     val principle = cycle.loanAmount.toString()
                     val interest = cycle.interestAmount.toString()
-                    val dispersalDate = dateFormat.format(Date(cycle.startDate))
+                    
+                    var dispersalDate = dateFormat.format(Date(cycle.startDate))
+                    val loanMeta = mutableListOf<String>()
+                    if (cycle.notes.isNotBlank()) {
+                        loanMeta.add("NOTES: ${cycle.notes}")
+                    }
+                    if (cycle.status.isNotBlank()) {
+                        loanMeta.add("STATUS: ${cycle.status}")
+                    }
+                    if (loanMeta.isNotEmpty()) {
+                        dispersalDate += " " + loanMeta.joinToString(" | ", prefix = "[", postfix = "]")
+                    }
 
                     s.append("$safeUuid,$customOrder,$safeName,$safePhone,$safeCity,$safeSmsSettings,")
-                    s.append("${escapeCsv(loanUuid)},$amountDisbursed,$principle,$interest,$dispersalDate")
+                    s.append("${escapeCsv(loanUuid)},$amountDisbursed,$principle,$interest,${escapeCsv(dispersalDate)}")
 
                     val cyclePayments = validPayments.filter { it.loanCycleId == cycle.id }
 
                     for (w in 1..30) {
                         val p = cyclePayments.find { it.weekNumber == w }
                         if (p != null) {
-                            val pDate = dateTimeFormat.format(Date(p.paymentDate))
+                            var pDate = dateTimeFormat.format(Date(p.paymentDate))
+                            val metaList = mutableListOf<String>()
+                            if (!p.upiTxnId.isNullOrBlank()) {
+                                metaList.add("TXN: ${p.upiTxnId}")
+                            }
+                            if (p.notes.isNotBlank()) {
+                                metaList.add("NOTES: ${p.notes}")
+                            }
+                            if (metaList.isNotEmpty()) {
+                                pDate += " " + metaList.joinToString(" | ", prefix = "[", postfix = "]")
+                            }
                             val pAmt = p.amountPaid.toString()
                             s.append(",${escapeCsv(pDate)},$pAmt")
                         } else {
@@ -291,9 +312,24 @@ object CsvBackupHelper {
 
                     var smsWeekly = false
                     var smsConf = false
+                    var autoWeeklySms = false
+                    var autoWeeklyWhatsapp = false
+                    var upiNameAlias = ""
+                    var preferredLanguage = "English"
+
                     if (smsSettingsStr.isNotBlank()) {
                         smsWeekly = smsSettingsStr.contains("Weekly Reminder: YES", ignoreCase = true)
                         smsConf = smsSettingsStr.contains("Entry Confirmation: YES", ignoreCase = true)
+                        
+                        val autoSmsRegex = "Auto Weekly SMS:\\s*(YES|NO)".toRegex(RegexOption.IGNORE_CASE)
+                        val autoWhatsappRegex = "Auto Weekly Whatsapp:\\s*(YES|NO)".toRegex(RegexOption.IGNORE_CASE)
+                        val upiAliasRegex = "UPI Name Alias:\\s*([^,\\]]+)".toRegex(RegexOption.IGNORE_CASE)
+                        val langRegex = "Preferred Language:\\s*([^,\\]]+)".toRegex(RegexOption.IGNORE_CASE)
+                        
+                        autoWeeklySms = autoSmsRegex.find(smsSettingsStr)?.groupValues?.getOrNull(1)?.trim()?.equals("YES", ignoreCase = true) ?: false
+                        autoWeeklyWhatsapp = autoWhatsappRegex.find(smsSettingsStr)?.groupValues?.getOrNull(1)?.trim()?.equals("YES", ignoreCase = true) ?: false
+                        upiNameAlias = upiAliasRegex.find(smsSettingsStr)?.groupValues?.getOrNull(1)?.trim() ?: ""
+                        preferredLanguage = langRegex.find(smsSettingsStr)?.groupValues?.getOrNull(1)?.trim() ?: "English"
                     }
 
                     val finalCustomerId: Int
@@ -308,6 +344,10 @@ object CsvBackupHelper {
                             customOrder = customOrder,
                             smsWeeklyReminder = smsWeekly,
                             smsConfirmationOfEntry = smsConf,
+                            autoWeeklySms = autoWeeklySms,
+                            autoWeeklyWhatsapp = autoWeeklyWhatsapp,
+                            upiNameAlias = upiNameAlias,
+                            preferredLanguage = preferredLanguage,
                             lastModified = System.currentTimeMillis()
                         )
                         dao.updateCustomer(updatedCustomer)
@@ -325,6 +365,10 @@ object CsvBackupHelper {
                             collectionDay = rowGroup,
                             smsWeeklyReminder = smsWeekly,
                             smsConfirmationOfEntry = smsConf,
+                            autoWeeklySms = autoWeeklySms,
+                            autoWeeklyWhatsapp = autoWeeklyWhatsapp,
+                            upiNameAlias = upiNameAlias,
+                            preferredLanguage = preferredLanguage,
                             uuid = customerUuid,
                             lastModified = System.currentTimeMillis()
                         )
@@ -347,6 +391,25 @@ object CsvBackupHelper {
                             existingLoan = allLoansCache.find { it.uuid.trim().equals(loanUuidRaw, ignoreCase = true) }
                         }
                         val finalLoanUuid = existingLoan?.uuid ?: if (loanUuidRaw.isNotBlank()) loanUuidRaw else UUID.randomUUID().toString()
+
+                        var cleanDispersalDateStr = dispersalDateStr
+                        var parsedLoanNotes = ""
+                        var parsedLoanStatus = "ACTIVE"
+
+                        if (dispersalDateStr.contains("[")) {
+                            val startIndex = dispersalDateStr.indexOf("[")
+                            cleanDispersalDateStr = dispersalDateStr.substring(0, startIndex).trim()
+                            val metaContent = dispersalDateStr.substring(startIndex).trim()
+                            val notesRegex = "NOTES:\\s*([^|\\]]+)".toRegex()
+                            val statusRegex = "STATUS:\\s*([^|\\]]+)".toRegex()
+                            
+                            notesRegex.find(metaContent)?.groupValues?.getOrNull(1)?.trim()?.let {
+                                parsedLoanNotes = it
+                            }
+                            statusRegex.find(metaContent)?.groupValues?.getOrNull(1)?.trim()?.let {
+                                parsedLoanStatus = it
+                            }
+                        }
 
                         val maxPaymentWeek = (1..30).filter { w ->
                             val amtColIdx = 12 + 2 * (w - 1)
@@ -374,9 +437,11 @@ object CsvBackupHelper {
                                 interestAmount = interest,
                                 weeklyAmount = finalWeeklyAmount,
                                 totalWeeks = finalTotalWeeks,
-                                startDate = parseDateStringWithFallback(dispersalDateStr) { existingLoan.startDate },
+                                startDate = parseDateStringWithFallback(cleanDispersalDateStr) { existingLoan.startDate },
                                 lastModified = System.currentTimeMillis(),
-                                deduction = deduction
+                                deduction = deduction,
+                                notes = parsedLoanNotes,
+                                status = parsedLoanStatus
                             )
                             dao.updateLoanCycle(updatedLoan)
                             val cacheIdx = allLoansCache.indexOfFirst { it.id == finalLoanId }
@@ -390,8 +455,9 @@ object CsvBackupHelper {
                                 interestAmount = interest,
                                 weeklyAmount = finalWeeklyAmount,
                                 totalWeeks = finalTotalWeeks,
-                                startDate = parseDateStringWithFallback(dispersalDateStr) { System.currentTimeMillis() },
-                                status = "ACTIVE",
+                                startDate = parseDateStringWithFallback(cleanDispersalDateStr) { System.currentTimeMillis() },
+                                status = parsedLoanStatus,
+                                notes = parsedLoanNotes,
                                 uuid = finalLoanUuid,
                                 lastModified = System.currentTimeMillis(),
                                 deduction = deduction
@@ -412,13 +478,34 @@ object CsvBackupHelper {
                             val pAmtStr = row.getOrNull(amtColIdx)?.trim() ?: ""
                             val pAmt = pAmtStr.replace(Regex("[^0-9.-]"), "").toDoubleOrNull() ?: 0.0
 
+                            var cleanDateStr = pDateStr
+                            var parsedUpiTxnId: String? = null
+                            var parsedPaymentNotes = ""
+
+                            if (pDateStr.contains("[")) {
+                                val startIndex = pDateStr.indexOf("[")
+                                cleanDateStr = pDateStr.substring(0, startIndex).trim()
+                                val metaContent = pDateStr.substring(startIndex).trim()
+                                val txnRegex = "TXN:\\s*([^|\\]]+)".toRegex()
+                                val notesRegex = "NOTES:\\s*([^|\\]]+)".toRegex()
+                                
+                                txnRegex.find(metaContent)?.groupValues?.getOrNull(1)?.trim()?.let {
+                                    parsedUpiTxnId = it
+                                }
+                                notesRegex.find(metaContent)?.groupValues?.getOrNull(1)?.trim()?.let {
+                                    parsedPaymentNotes = it
+                                }
+                            }
+
                             val existingP = existingPayments.find { it.weekNumber == w && it.status.uppercase() != "DELETED" }
                             if (pAmt > 0.0) {
                                 sumPaid += pAmt
                                 if (existingP != null) {
                                     val updatedP = existingP.copy(
                                         amountPaid = pAmt,
-                                        paymentDate = parseDateStringWithFallback(pDateStr) { existingP.paymentDate },
+                                        paymentDate = parseDateStringWithFallback(cleanDateStr) { existingP.paymentDate },
+                                        upiTxnId = parsedUpiTxnId,
+                                        notes = parsedPaymentNotes,
                                         lastModified = System.currentTimeMillis()
                                     )
                                     dao.insertPayment(updatedP)
@@ -430,8 +517,10 @@ object CsvBackupHelper {
                                     val newP = WeeklyPayment(
                                         loanCycleId = finalLoanId,
                                         amountPaid = pAmt,
-                                        paymentDate = parseDateStringWithFallback(pDateStr) { System.currentTimeMillis() },
+                                        paymentDate = parseDateStringWithFallback(cleanDateStr) { System.currentTimeMillis() },
                                         weekNumber = w,
+                                        upiTxnId = parsedUpiTxnId,
+                                        notes = parsedPaymentNotes,
                                         uuid = UUID.randomUUID().toString(),
                                         lastModified = System.currentTimeMillis(),
                                         status = "ACTIVE"

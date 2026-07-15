@@ -1573,7 +1573,9 @@ fun TemplatesSubPage(
     var showCustomerSmsSettings by remember { mutableStateOf(false) }
     val collectionGroups by viewModel.collectionGroups.collectAsStateWithLifecycle()
     val daysList = remember(collectionGroups) { 
-        getOrderedDaysList(collectionGroups).filter { !it.equals("Friday", ignoreCase = true) } 
+        getOrderedDaysList(collectionGroups).filter { 
+            !it.equals("Friday", ignoreCase = true) && !it.equals("Home", ignoreCase = true) 
+        } 
     }
     var selectedSmsDay by remember { mutableStateOf("") }
 
@@ -1693,30 +1695,16 @@ fun TemplatesSubPage(
                                     modifier = Modifier.padding(12.dp)
                                 ) {
                                     Row(
-                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        horizontalArrangement = Arrangement.Start,
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text(
-                                            text = customer.name,
+                                            text = "${customer.customOrder}. ${customer.name}",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp,
                                             color = textColor
                                         )
-                                        
-                                        Surface(
-                                            shape = RoundedCornerShape(6.dp),
-                                            color = appColors.primaryAccent.copy(alpha = 0.1f),
-                                            border = BorderStroke(1.dp, appColors.primaryAccent.copy(alpha = 0.2f))
-                                        ) {
-                                            Text(
-                                                text = "${translate("Route No", language)}: ${customer.customOrder}",
-                                                fontWeight = FontWeight.SemiBold,
-                                                fontSize = 10.sp,
-                                                color = appColors.primaryAccent,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
                                     }
                                     
                                     Spacer(modifier = Modifier.height(8.dp))

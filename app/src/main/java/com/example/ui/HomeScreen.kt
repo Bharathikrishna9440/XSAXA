@@ -2336,7 +2336,7 @@ fun CustomerOverviewCard(
                             ) {
                                 Column(modifier = Modifier.weight(1.0f)) {
                                     Text(
-                                        text = "Loan ${index + 1} • Collected ₹${CurrencyFormatter.format(activeLoan.paidAmount)} / ₹${CurrencyFormatter.format(totalAmt)}",
+                                        text = "Collected ₹${CurrencyFormatter.format(activeLoan.paidAmount)} / ₹${CurrencyFormatter.format(totalAmt)}",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = ColorGainGreen
@@ -2398,7 +2398,7 @@ fun CustomerOverviewCard(
                                                      !actualHasPaymentInPast2Days
 
                                 val shakeOffset = if (needsAttention) translationX else 0f
-                                val showRedMultiple = needsAttention
+                                val showRedMultiple = needsAttention && isCurrentDayMyDay
 
                                 if (todayPaidAmt != null) {
                                     Text(

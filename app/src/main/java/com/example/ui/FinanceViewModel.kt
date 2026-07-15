@@ -1958,7 +1958,8 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         notes = payloadObj.optString("notes", ""),
                         paidAmount = payloadObj.optDouble("paidAmount", 0.0),
                         uuid = loanUuid,
-                        lastModified = log.timestamp
+                        lastModified = log.timestamp,
+                        deduction = payloadObj.optDouble("deduction", existingL?.deduction ?: 0.0)
                     )
                     if (existingL != null) {
                         repository.updateLoanCycle(l)
