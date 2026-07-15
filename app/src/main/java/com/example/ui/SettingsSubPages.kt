@@ -122,43 +122,55 @@ fun FontSizeSubPage(
     appColors: AppThemeColors,
     fontSizeScale: Float
 ) {
+    val isDark = appColors.isDark
+    val cardBg = if (isDark) Color(0xFF1E293B) else Color.White
+    val cardBorder = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+    val textColor = if (isDark) Color.White else ColorSlateDark
+    val subTextColor = if (isDark) Color(0xFF94A3B8) else Color.DarkGray
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        border = BorderStroke(1.dp, cardBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
                 text = translate("Select text typography scale setting to fit comfortably on small screens.", language),
                 fontSize = 11.sp,
-                color = Color.DarkGray
+                color = subTextColor
             )
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 val sizes = listOf(
-                    "Small" to ("Compact Reading Size (Small)" to 0.9f),
-                    "Normal" to ("Standard Reading Size (Normal)" to 1.15f),
-                    "Large" to ("Enlarged Vision Size (Large)" to 1.35f)
+                    "Tiny" to ("Tiny / Extra Compact (0.75x)" to 0.75f),
+                    "Compact" to ("Small / Compact (0.90x)" to 0.90f),
+                    "Regular" to ("Regular / Comfort (1.00x)" to 1.00f),
+                    "Normal" to ("Normal / Standard (1.15x)" to 1.15f),
+                    "Medium" to ("Medium / Readable (1.25x)" to 1.25f),
+                    "Large" to ("Large / Enlarged (1.35x)" to 1.35f),
+                    "Extra Large" to ("Extra Large / XL (1.50x)" to 1.50f),
+                    "Huge" to ("Huge / High Visibility (1.65x)" to 1.65f),
+                    "Gigantic" to ("Gigantic / Maximum Zoom (1.80x)" to 1.80f)
                 )
 
                 sizes.forEach { (sizeKey, pair) ->
                     val (label, targetScale) = pair
-                    val isSel = kotlin.math.abs(fontSizeScale - targetScale) < 0.05f
+                    val isSel = kotlin.math.abs(fontSizeScale - targetScale) < 0.051f
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                color = if (isSel) ColorSlateDark.copy(alpha = 0.05f) else Color.White,
+                                color = if (isSel) appColors.primaryAccent.copy(alpha = 0.08f) else Color.Transparent,
                                 shape = RoundedCornerShape(8.dp)
                             )
                             .border(
-                                width = 1.dp,
-                                color = if (isSel) ColorSlateDark else Color(0xFFE2E8F0),
+                                width = if (isSel) 2.dp else 1.dp,
+                                color = if (isSel) appColors.primaryAccent else cardBorder,
                                 shape = RoundedCornerShape(8.dp)
                             )
                             .clickable { viewModel.setFontSizeScale(targetScale) }
-                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -166,15 +178,58 @@ fun FontSizeSubPage(
                             text = translate(label, language),
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
-                            color = ColorSlateDark
+                            color = textColor
                         )
 
                         RadioButton(
                             selected = isSel,
                             onClick = { viewModel.setFontSizeScale(targetScale) },
-                            colors = RadioButtonDefaults.colors(selectedColor = ColorSlateDark)
+                            colors = RadioButtonDefaults.colors(selectedColor = appColors.primaryAccent)
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            HorizontalDivider(color = cardBorder)
+            Spacer(modifier = Modifier.height(4.dp))
+            
+            Text(
+                text = translate("Typography Live Preview", language),
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = appColors.primaryAccent
+            )
+            
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+                ),
+                shape = RoundedCornerShape(10.dp),
+                border = BorderStroke(1.dp, cardBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "MD Finance App",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp,
+                        color = textColor
+                    )
+                    Text(
+                        text = "₹ 1,25,000.00",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 20.sp,
+                        color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
+                    )
+                    Text(
+                        text = translate("This is a live preview of how the chosen text size fits inside lists and summaries.", language),
+                        fontSize = 12.sp,
+                        color = subTextColor
+                    )
                 }
             }
         }
@@ -1500,6 +1555,9 @@ fun GoogleContactsSyncSubPage(
 // ==========================================
 // 9. TemplatesSubPage
 // ==========================================
+// ==========================================
+// 9. TemplatesSubPage
+// ==========================================
 @Composable
 fun TemplatesSubPage(
     language: String,
@@ -1512,225 +1570,464 @@ fun TemplatesSubPage(
     smsReminderTemplate: String,
     whatsappReminderTemplate: String
 ) {
+    var showCustomerSmsSettings by remember { mutableStateOf(false) }
+    val collectionGroups by viewModel.collectionGroups.collectAsStateWithLifecycle()
+    val daysList = remember(collectionGroups) { 
+        getOrderedDaysList(collectionGroups).filter { !it.equals("Friday", ignoreCase = true) } 
+    }
+    var selectedSmsDay by remember { mutableStateOf("") }
+
+    LaunchedEffect(daysList) {
+        if (selectedSmsDay.isBlank() && daysList.isNotEmpty()) {
+            selectedSmsDay = daysList.first()
+        }
+    }
+
+    val isDark = appColors.isDark
+    val cardBg = if (isDark) Color(0xFF1E293B) else Color.White
+    val cardBorder = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
+    val textColor = if (isDark) Color.White else ColorSlateDark
+    val subTextColor = if (isDark) Color(0xFF94A3B8) else Color.DarkGray
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
         shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        border = BorderStroke(1.dp, cardBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            // Outbound SMS Controls Toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
-                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = translate("Outbound SMS Sending", language),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        color = if (smsPaused) ColorLossRed else ColorSlateDark
-                    )
-                    Text(
-                        text = translate("Pause or enable outbound confirmation and draft SMS.", language),
-                        fontSize = 10.sp,
-                        color = Color.Gray
-                    )
-                }
-
-                Switch(
-                    checked = !smsPaused,
-                    onCheckedChange = { viewModel.setSmsPaused(!it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = ColorSlateDark,
-                        checkedTrackColor = ColorSlateDark.copy(alpha = 0.4f),
-                        uncheckedThumbColor = Color.LightGray,
-                        uncheckedTrackColor = Color.LightGray.copy(alpha = 0.4f)
-                    )
-                )
-            }
-
-            HorizontalDivider(color = Color(0xFFF1F5F9))
-
-            Text(
-                 text = translate("Configure custom templates for SMS/WhatsApp confirmations and alerts. Use the dynamic wildcards listed below. They will be autoreplaced when sending:", language),
-                 fontSize = 11.sp,
-                 color = Color.DarkGray
-            )
-
-            // List variables
-            val variables = listOf(
-                "{customer}" to "Client's registration name ({name} is also supported)",
-                "{amount}" to "Active payment / transaction amount",
-                "{business}" to "My custom businesssignature tag",
-                "{upi}" to "Configured business merchant UPI ID",
-                "{upi_link}" to "Direct UPI pay link (QR Link / URI)",
-                "{balance}" to "Remaining outstanding balance",
-                "{inst_amt}" to "Standard collection installment amount",
-                "{date}" to "Current formatted entry timestamp"
-            )
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF1F5F9), RoundedCornerShape(8.dp))
-                    .padding(10.dp)
-            ) {
-                variables.forEach { (token, label) ->
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = translate(label, language),
-                            fontSize = 10.sp,
-                            color = Color.DarkGray
-                        )
-                        Text(
-                            text = token,
-                            color = appColors.primaryAccent,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+            if (showCustomerSmsSettings) {
+                // Header of Customer-wise SMS Settings
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    IconButton(onClick = { showCustomerSmsSettings = false }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = textColor
                         )
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = translate("Customer Wise SMS Settings", language),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = textColor
+                    )
                 }
-            }
 
-            HorizontalDivider(color = Color(0xFFF1F5F9))
+                HorizontalDivider(color = cardBorder)
 
-            Text(
-                text = translate("Select Language for Custom Templates:", language),
-                fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
-                color = ColorSlateDark
-            )
+                // Day Selection Tab Row (Horizontal Scrollable)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    daysList.forEach { day ->
+                        val isActive = day.trim().equals(selectedSmsDay.trim(), ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = if (isActive) appColors.primaryAccent else (if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9)),
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isActive) appColors.primaryAccent else cardBorder,
+                                    shape = RoundedCornerShape(20.dp)
+                                )
+                                .clickable { selectedSmsDay = day }
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = translate(day, language).uppercase(java.util.Locale.getDefault()),
+                                color = if (isActive) Color.White else (if (isDark) Color.White else Color.Black),
+                                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
-            ) {
-                val languages = listOf("English", "Tamil", "Hindi", "Telugu")
-                languages.forEach { langItem ->
-                    val isSelected = langItem == currentTemplateLang
+                // Customer list below
+                val allCustomers by viewModel.allCustomers.collectAsStateWithLifecycle()
+                val filteredCustomers = remember(allCustomers, selectedSmsDay) {
+                    allCustomers.filter { 
+                        it.collectionDay.trim().equals(selectedSmsDay.trim(), ignoreCase = true) 
+                    }.sortedBy { it.customOrder }
+                }
+
+                if (filteredCustomers.isEmpty()) {
                     Box(
                         modifier = Modifier
-                            .background(
-                                color = if (isSelected) ColorSlateDark else Color.White,
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = if (isSelected) ColorSlateDark else Color(0xFFCBD5E1),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .clickable { viewModel.setTemplateLanguage(langItem) }
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = translate(langItem, language),
-                            color = if (isSelected) Color.White else ColorSlateDark,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp
+                            text = translate("No customers registered for this day.", language),
+                            fontSize = 13.sp,
+                            color = subTextColor
                         )
                     }
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        filteredCustomers.forEach { customer ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, cardBorder),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = customer.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = textColor
+                                        )
+                                        
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = appColors.primaryAccent.copy(alpha = 0.1f),
+                                            border = BorderStroke(1.dp, appColors.primaryAccent.copy(alpha = 0.2f))
+                                        ) {
+                                            Text(
+                                                text = "${translate("Route No", language)}: ${customer.customOrder}",
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 10.sp,
+                                                color = appColors.primaryAccent,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clickable {
+                                                    viewModel.updateCustomerSmsSettings(
+                                                        customer,
+                                                        smsWeekly = !customer.smsWeeklyReminder,
+                                                        smsConfirmation = customer.smsConfirmationOfEntry
+                                                    )
+                                                }
+                                        ) {
+                                            Checkbox(
+                                                checked = customer.smsWeeklyReminder,
+                                                onCheckedChange = { isChecked ->
+                                                    viewModel.updateCustomerSmsSettings(
+                                                        customer,
+                                                        smsWeekly = isChecked,
+                                                        smsConfirmation = customer.smsConfirmationOfEntry
+                                                    )
+                                                },
+                                                colors = CheckboxDefaults.colors(checkedColor = appColors.primaryAccent)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = translate("Weekly Reminder", language),
+                                                fontSize = 11.sp,
+                                                color = subTextColor
+                                            )
+                                        }
+                                        
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clickable {
+                                                    viewModel.updateCustomerSmsSettings(
+                                                        customer,
+                                                        smsWeekly = customer.smsWeeklyReminder,
+                                                        smsConfirmation = !customer.smsConfirmationOfEntry
+                                                    )
+                                                }
+                                        ) {
+                                            Checkbox(
+                                                checked = customer.smsConfirmationOfEntry,
+                                                onCheckedChange = { isChecked ->
+                                                    viewModel.updateCustomerSmsSettings(
+                                                        customer,
+                                                        smsWeekly = customer.smsWeeklyReminder,
+                                                        smsConfirmation = isChecked
+                                                    )
+                                                },
+                                                colors = CheckboxDefaults.colors(checkedColor = appColors.primaryAccent)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = translate("Entry Confirmation", language),
+                                                fontSize = 11.sp,
+                                                color = subTextColor
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-            }
+            } else {
+                // Outbound SMS Controls Toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC), RoundedCornerShape(8.dp))
+                        .border(1.dp, cardBorder, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = translate("Outbound SMS Sending", language),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = if (smsPaused) ColorLossRed else textColor
+                        )
+                        Text(
+                            text = translate("Pause or enable outbound confirmation and draft SMS.", language),
+                            fontSize = 10.sp,
+                            color = subTextColor
+                        )
+                    }
 
-            HorizontalDivider(color = Color(0xFFF1F5F9))
+                    Switch(
+                        checked = !smsPaused,
+                        onCheckedChange = { viewModel.setSmsPaused(!it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = appColors.primaryAccent,
+                            checkedTrackColor = appColors.primaryAccent.copy(alpha = 0.4f),
+                            uncheckedThumbColor = Color.LightGray,
+                            uncheckedTrackColor = Color.LightGray.copy(alpha = 0.4f)
+                        )
+                    )
+                }
 
-            // New Loan Custom Area
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("1. New Loan Confirmation SMS Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = ColorSlateDark)
-                OutlinedTextField(
-                    value = smsNewLoanTemplate,
-                    onValueChange = { viewModel.setSmsNewLoanTemplate(it) },
+                // Customer Wise SMS Settings Button
+                Button(
+                    onClick = { showCustomerSmsSettings = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = appColors.primaryAccent),
                     shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4
-                )
-            }
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Customer Wise SMS Settings",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = translate("Customer Wise SMS Settings", language),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        fontSize = 13.sp
+                    )
+                }
 
-            // Payment Confirmation Custom Area
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("2. Entry Confirmation SMS Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = ColorSlateDark)
-                OutlinedTextField(
-                    value = smsPaymentTemplate,
-                    onValueChange = { viewModel.setSmsPaymentTemplate(it) },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4
-                )
-            }
+                HorizontalDivider(color = cardBorder)
 
-            // SMS Reminder Custom Area
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("3. Weekly SMS Reminder Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = ColorSlateDark)
-                OutlinedTextField(
-                    value = smsReminderTemplate,
-                    onValueChange = { viewModel.setSmsReminderTemplate(it) },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.White,
-                        unfocusedLabelColor = Color.DarkGray,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4
+                Text(
+                     text = translate("Configure custom templates for SMS/WhatsApp confirmations and alerts. Use the dynamic wildcards listed below. They will be autoreplaced when sending:", language),
+                     fontSize = 11.sp,
+                     color = subTextColor
                 )
-            }
 
-            // Whatsapp Reminder Custom Area
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("4. Weekly WhatsApp Reminder Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = ColorSlateDark)
-                OutlinedTextField(
-                    value = whatsappReminderTemplate,
-                    onValueChange = { viewModel.setWhatsappReminderTemplate(it) },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4
+                // List variables
+                val variables = listOf(
+                    "{customer}" to "Client's registration name ({name} is also supported)",
+                    "{amount}" to "Active payment / transaction amount",
+                    "{business}" to "My custom businesssignature tag",
+                    "{upi}" to "Configured business merchant UPI ID",
+                    "{upi_link}" to "Direct UPI pay link (QR Link / URI)",
+                    "{balance}" to "Remaining outstanding balance",
+                    "{inst_amt}" to "Standard collection installment amount",
+                    "{date}" to "Current formatted entry timestamp"
                 )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(if (isDark) Color(0xFF0F172A) else Color(0xFFF1F5F9), RoundedCornerShape(8.dp))
+                        .padding(10.dp)
+                ) {
+                    variables.forEach { (token, label) ->
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = translate(label, language),
+                                fontSize = 10.sp,
+                                color = subTextColor
+                            )
+                            Text(
+                                text = token,
+                                color = appColors.primaryAccent,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = cardBorder)
+
+                Text(
+                    text = translate("Select Language for Custom Templates:", language),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    color = textColor
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                ) {
+                    val languages = listOf("English", "Tamil", "Hindi", "Telugu")
+                    languages.forEach { langItem ->
+                        val isSelected = langItem == currentTemplateLang
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = if (isSelected) appColors.primaryAccent else (if (isDark) Color(0xFF0F172A) else Color.White),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = if (isSelected) appColors.primaryAccent else cardBorder,
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable { viewModel.setTemplateLanguage(langItem) }
+                                .padding(horizontal = 14.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = translate(langItem, language),
+                                color = if (isSelected) Color.White else textColor,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = cardBorder)
+
+                // New Loan Custom Area
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("1. New Loan Confirmation SMS Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
+                    OutlinedTextField(
+                        value = smsNewLoanTemplate,
+                        onValueChange = { viewModel.setSmsNewLoanTemplate(it) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            focusedLabelColor = textColor,
+                            unfocusedLabelColor = textColor,
+                            focusedPlaceholderColor = Color.DarkGray,
+                            unfocusedPlaceholderColor = Color.DarkGray,
+                            focusedBorderColor = appColors.primaryAccent,
+                            unfocusedBorderColor = cardBorder
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4
+                    )
+                }
+
+                // Payment Confirmation Custom Area
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("2. Entry Confirmation SMS Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
+                    OutlinedTextField(
+                        value = smsPaymentTemplate,
+                        onValueChange = { viewModel.setSmsPaymentTemplate(it) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            focusedLabelColor = textColor,
+                            unfocusedLabelColor = textColor,
+                            focusedPlaceholderColor = Color.DarkGray,
+                            unfocusedPlaceholderColor = Color.DarkGray,
+                            focusedBorderColor = appColors.primaryAccent,
+                            unfocusedBorderColor = cardBorder
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4
+                    )
+                }
+
+                // SMS Reminder Custom Area
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("3. Weekly SMS Reminder Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
+                    OutlinedTextField(
+                        value = smsReminderTemplate,
+                        onValueChange = { viewModel.setSmsReminderTemplate(it) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            focusedLabelColor = textColor,
+                            unfocusedLabelColor = textColor,
+                            focusedPlaceholderColor = Color.DarkGray,
+                            unfocusedPlaceholderColor = Color.DarkGray,
+                            focusedBorderColor = appColors.primaryAccent,
+                            unfocusedBorderColor = cardBorder
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4
+                    )
+                }
+
+                // Whatsapp Reminder Custom Area
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("4. Weekly WhatsApp Reminder Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
+                    OutlinedTextField(
+                        value = whatsappReminderTemplate,
+                        onValueChange = { viewModel.setWhatsappReminderTemplate(it) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            focusedLabelColor = textColor,
+                            unfocusedLabelColor = textColor,
+                            focusedPlaceholderColor = Color.DarkGray,
+                            unfocusedPlaceholderColor = Color.DarkGray,
+                            focusedBorderColor = appColors.primaryAccent,
+                            unfocusedBorderColor = cardBorder
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 4
+                    )
+                }
             }
         }
     }

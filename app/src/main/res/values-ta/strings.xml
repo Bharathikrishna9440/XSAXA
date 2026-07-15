@@ -71,6 +71,9 @@
     <string name="connected">இணைக்கப்பட்டுள்ளது</string>
     <string name="custom_sms_formats">எஸ்எம்எஸ் அமைப்புகள்</string>
     <string name="customer_dashboard">வாடிக்கையாளர் பலகை</string>
+    <string name="customer_wise_sms_settings">வாடிக்கையாளர் வாரியான எஸ்எம்எஸ் அமைப்புகள்</string>
+    <string name="route_no">வழித்தட எண்</string>
+    <string name="entry_confirmation">உறுதிப்படுத்தல் எஸ்எம்எஸ்</string>
     <string name="customer_name">வாடிக்கையாளர் பெயர்</string>
     <string name="customer_profile">வாடிக்கையாளர் விவரம்</string>
     <string name="customer_record_not_available_for_editing">திருத்துவதற்கு வாடிக்கையாளர் விவரங்கள் கிடைக்கவில்லை.</string>

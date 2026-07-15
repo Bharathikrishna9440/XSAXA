@@ -149,6 +149,12 @@ interface CollectionDao {
     @Delete
     suspend fun deletePayment(payment: WeeklyPayment)
 
+    @Query("DELETE FROM loan_cycles WHERE customerId = :customerId")
+    suspend fun deleteLoanCyclesForCustomer(customerId: Int)
+
+    @Query("DELETE FROM weekly_payments WHERE loanCycleId IN (SELECT id FROM loan_cycles WHERE customerId = :customerId)")
+    suspend fun deletePaymentsForCustomer(customerId: Int)
+
     @Query("DELETE FROM customers")
     suspend fun deleteAllCustomers()
 

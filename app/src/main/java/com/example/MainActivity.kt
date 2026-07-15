@@ -15,6 +15,9 @@ import com.example.network.FirebaseUpdateManager
 import com.example.ui.FinanceViewModel
 import com.example.ui.WeeklyFinanceApp
 import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.zoomableOnPinchReset
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,7 +80,8 @@ class MainActivity : ComponentActivity() {
     }
 
     val permissionsArray = mutableListOf(
-        android.Manifest.permission.CALL_PHONE
+        android.Manifest.permission.CALL_PHONE,
+        android.Manifest.permission.SEND_SMS
     ).apply {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             add(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -147,7 +151,9 @@ class MainActivity : ComponentActivity() {
                 handleDeepLink(intent)
             }
 
-            WeeklyFinanceApp(viewModel = viewModel)
+            Box(modifier = Modifier.fillMaxSize().zoomableOnPinchReset()) {
+                WeeklyFinanceApp(viewModel = viewModel)
+            }
         }
       }
     }

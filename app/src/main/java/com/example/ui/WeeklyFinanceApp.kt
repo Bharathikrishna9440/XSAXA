@@ -379,11 +379,17 @@ fun WeeklyFinanceApp(
 
     val currentDensity = LocalDensity.current
     val colors = getThemeColors(selectedTheme)
+    
+    // Safely limit combined font scale to a robust maximum (e.g. 1.45f) to ensure 
+    // visual integrity, neatness, and prevent any text overlapping or layout displacement 
+    // across all screens, while still providing highly legible, enlarged text.
+    val coercedFontScale = (currentDensity.fontScale * fontSizeScale).coerceIn(0.70f, 1.45f)
+    
     CompositionLocalProvider(
         LocalAppThemeColors provides colors,
         LocalDensity provides Density(
             density = currentDensity.density,
-            fontScale = currentDensity.fontScale * fontSizeScale
+            fontScale = coercedFontScale
         )
     ) {
         var showWelcomeSplash by remember { mutableStateOf(false) }
@@ -725,7 +731,7 @@ fun WeeklyFinanceApp(
                                     if (customer != null) {
                                         var showMenu by remember { mutableStateOf(false) }
                                         var showDeleteCustomerDialog by remember { mutableStateOf(false) }
-                                        var showDeleteLoanCycleDialog by remember { mutableStateOf(false) }
+                                        var deletingLoanCycleTarget by remember { mutableStateOf<Pair<LoanCycle, String>?>(null) }
 
                                         if (showDeleteCustomerDialog) {
                                             AlertDialog(
@@ -756,20 +762,22 @@ fun WeeklyFinanceApp(
                                             )
                                         }
 
-                                        if (showDeleteLoanCycleDialog && activeLoan != null) {
+                                        if (deletingLoanCycleTarget != null) {
+                                            val target = deletingLoanCycleTarget!!.first
+                                            val label = deletingLoanCycleTarget!!.second
                                             AlertDialog(
-                                                onDismissRequest = { showDeleteLoanCycleDialog = false },
+                                                onDismissRequest = { deletingLoanCycleTarget = null },
                                                 containerColor = Color.White,
                                                 titleContentColor = Color.Black,
                                                 textContentColor = Color.Black,
-                                                title = { Text(translate("Delete Active Loan Cycle?", language), fontWeight = FontWeight.Bold, color = Color.Black) },
-                                                text = { Text("Are you sure you want to delete this active loan cycle worth ₹${activeLoan.loanAmount + activeLoan.interestAmount}? This will also delete all its payment history entries. This action cannot be undone!", color = Color.Black) },
+                                                title = { Text(translate("Delete $label?", language), fontWeight = FontWeight.Bold, color = Color.Black) },
+                                                text = { Text("Are you sure you want to delete this $label worth ₹${target.loanAmount + target.interestAmount}? This will also delete all its payment history entries. This action cannot be undone!", color = Color.Black) },
                                                 confirmButton = {
                                                     Button(
                                                         onClick = {
-                                                            showDeleteLoanCycleDialog = false
-                                                            viewModel.deleteLoanCycle(activeLoan)
-                                                            Toast.makeText(context, "Deleted active loan cycle for ${customer.name}", Toast.LENGTH_SHORT).show()
+                                                            viewModel.deleteLoanCycle(target)
+                                                            deletingLoanCycleTarget = null
+                                                            Toast.makeText(context, "Deleted $label for ${customer.name}", Toast.LENGTH_SHORT).show()
                                                         },
                                                         colors = ButtonDefaults.buttonColors(containerColor = ColorLossRed)
                                                     ) {
@@ -777,7 +785,7 @@ fun WeeklyFinanceApp(
                                                     }
                                                 },
                                                 dismissButton = {
-                                                    TextButton(onClick = { showDeleteLoanCycleDialog = false }) {
+                                                    TextButton(onClick = { deletingLoanCycleTarget = null }) {
                                                         Text(translate("Cancel", language), color = Color.Black)
                                                     }
                                                 }
@@ -806,24 +814,34 @@ fun WeeklyFinanceApp(
                                                     }
                                                 )
                                                 
-                                                // Edit Active Cycle if exists
-                                                if (activeLoan != null) {
-                                                    DropdownMenuItem(
-                                                        text = { Text("Edit Active Loan Cycle") },
-                                                        leadingIcon = { Icon(Icons.Default.CurrencyExchange, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                                        onClick = {
-                                                            showMenu = false
-                                                            viewModel.navigateTo(Screen.EditLoan(activeLoan.id))
-                                                        }
-                                                    )
-                                                    DropdownMenuItem(
-                                                        text = { Text("Delete Active Loan Cycle", color = ColorLossRed) },
-                                                        leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ColorLossRed, modifier = Modifier.size(16.dp)) },
-                                                        onClick = {
-                                                            showMenu = false
-                                                            showDeleteLoanCycleDialog = true
-                                                        }
-                                                    )
+                                                val customerLoans = allLoanCycles
+                                                    .filter { it.customerId == custId && it.status.uppercase() != "DELETED" }
+                                                    .sortedBy { it.id }
+
+                                                if (customerLoans.isNotEmpty()) {
+                                                    HorizontalDivider()
+                                                    customerLoans.forEachIndexed { index, loan ->
+                                                        val label = "Loan ${index + 1}"
+                                                        val isLoanActive = loan.status == "ACTIVE"
+                                                        val statusLabel = if (isLoanActive) "Active" else "Settled"
+                                                        
+                                                        DropdownMenuItem(
+                                                            text = { Text("Edit $label ($statusLabel)") },
+                                                            leadingIcon = { Icon(Icons.Default.CurrencyExchange, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                                                            onClick = {
+                                                                showMenu = false
+                                                                viewModel.navigateTo(Screen.EditLoan(loan.id))
+                                                            }
+                                                        )
+                                                        DropdownMenuItem(
+                                                            text = { Text("Delete $label ($statusLabel)", color = ColorLossRed) },
+                                                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ColorLossRed, modifier = Modifier.size(16.dp)) },
+                                                            onClick = {
+                                                                showMenu = false
+                                                                deletingLoanCycleTarget = Pair(loan, label)
+                                                            }
+                                                        )
+                                                    }
                                                 }
                                                 
                                                 HorizontalDivider()

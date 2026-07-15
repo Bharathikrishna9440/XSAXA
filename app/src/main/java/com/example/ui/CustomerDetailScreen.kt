@@ -1118,59 +1118,65 @@ fun CustomerDetailScreen(
         }
 
         // REDESIGNED: Home Dashboard Style Customer outstanding ledger card
-        val activeLoanReal = activeLoans.firstOrNull()
-        val activeLoan = activeLoanReal ?: LoanCycle(
-            id = -1,
-            customerId = customer.id,
-            loanAmount = 0.0,
-            interestAmount = 0.0,
-            weeklyAmount = 0.0,
-            totalWeeks = 10,
-            startDate = 0L,
-            status = "NONE",
-            notes = "",
-            paidAmount = 0.0,
-            uuid = "",
-            lastModified = 0L
-        )
-
-        val lastPayment = remember(customerPayments) {
-            customerPayments
-                .filter { it.status != "DELETED" }
-                .maxByOrNull { it.paymentDate }
+        val allCustomerLoans = remember(loanCycles) { loanCycles.sortedBy { it.id } }
+        val activeLoansToRender = if (activeLoans.isEmpty()) {
+            listOf(
+                LoanCycle(
+                    id = -1,
+                    customerId = customer.id,
+                    loanAmount = 0.0,
+                    interestAmount = 0.0,
+                    weeklyAmount = 0.0,
+                    totalWeeks = 10,
+                    startDate = 0L,
+                    status = "NONE",
+                    notes = "",
+                    paidAmount = 0.0,
+                    uuid = "",
+                    lastModified = 0L
+                )
+            )
+        } else {
+            activeLoans
         }
 
-        val lastPaymentInfo = remember(lastPayment) {
-            lastPayment?.let { lp ->
-                val sdfDateOnly = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                val payDate = Date(lp.paymentDate)
-                val payDateStr = sdfDateOnly.format(payDate)
-                
-                // Format time
-                val sdfTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
-                val payTimeStr = sdfTime.format(payDate)
-
-                val nowCal = Calendar.getInstance()
-                val payCal = Calendar.getInstance().apply { timeInMillis = lp.paymentDate }
-                
-                val relativeDay = if (nowCal.get(Calendar.YEAR) == payCal.get(Calendar.YEAR) &&
-                    nowCal.get(Calendar.DAY_OF_YEAR) == payCal.get(Calendar.DAY_OF_YEAR)) {
-                    "Today"
-                } else {
-                    val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DATE, -1) }
-                    if (yesterdayCal.get(Calendar.YEAR) == payCal.get(Calendar.YEAR) &&
-                        yesterdayCal.get(Calendar.DAY_OF_YEAR) == payCal.get(Calendar.DAY_OF_YEAR)) {
-                        "Yesterday"
-                    } else {
-                        payDateStr
-                    }
-                }
-                
-                "₹${lp.amountPaid.toLong()} on $relativeDay at $payTimeStr (Week ${lp.weekNumber})"
+        activeLoansToRender.forEach { activeLoan ->
+            val lastPayment = remember(customerPayments, activeLoan.id) {
+                customerPayments
+                    .filter { it.loanCycleId == activeLoan.id && it.status != "DELETED" }
+                    .maxByOrNull { it.paymentDate }
             }
-        }
 
-        if (true) {
+            val lastPaymentInfo = remember(lastPayment) {
+                lastPayment?.let { lp ->
+                    val sdfDateOnly = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                    val payDate = Date(lp.paymentDate)
+                    val payDateStr = sdfDateOnly.format(payDate)
+                    
+                    // Format time
+                    val sdfTime = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                    val payTimeStr = sdfTime.format(payDate)
+
+                    val nowCal = Calendar.getInstance()
+                    val payCal = Calendar.getInstance().apply { timeInMillis = lp.paymentDate }
+                    
+                    val relativeDay = if (nowCal.get(Calendar.YEAR) == payCal.get(Calendar.YEAR) &&
+                        nowCal.get(Calendar.DAY_OF_YEAR) == payCal.get(Calendar.DAY_OF_YEAR)) {
+                        "Today"
+                    } else {
+                        val yesterdayCal = Calendar.getInstance().apply { add(Calendar.DATE, -1) }
+                        if (yesterdayCal.get(Calendar.YEAR) == payCal.get(Calendar.YEAR) &&
+                            yesterdayCal.get(Calendar.DAY_OF_YEAR) == payCal.get(Calendar.DAY_OF_YEAR)) {
+                            "Yesterday"
+                        } else {
+                            payDateStr
+                        }
+                    }
+                    
+                    "₹${lp.amountPaid.toLong()} on $relativeDay at $payTimeStr (Week ${lp.weekNumber})"
+                }
+            }
+
             val totalToBePaid = activeLoan.loanAmount + activeLoan.interestAmount
             val remaining = maxOf(0.0, totalToBePaid - activeLoan.paidAmount)
             val progress = if (totalToBePaid > 0) (activeLoan.paidAmount / totalToBePaid).toFloat() else 0f
@@ -1181,6 +1187,7 @@ fun CustomerDetailScreen(
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(vertical = 4.dp)
                     .background(
                         brush = Brush.linearGradient(
                             colors = appColors.headerCardBg
@@ -1200,13 +1207,33 @@ fun CustomerDetailScreen(
                     ) {
                         Column {
                             // "name of customer top left with green colour text"
-                            Text(
-                                text = customer.name.uppercase(Locale.ROOT),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = appColors.textOnHeader,
-                                letterSpacing = 1.5.sp
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = customer.name.uppercase(Locale.ROOT),
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = appColors.textOnHeader,
+                                    letterSpacing = 1.5.sp
+                                )
+                                if (activeLoan.id != -1) {
+                                    val loanIndex = allCustomerLoans.indexOfFirst { it.id == activeLoan.id }
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "Loan ${loanIndex + 1}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = appColors.textOnHeader
+                                        )
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(2.dp))
                             if (customer.phone.isNotBlank()) {
                                 Text(
@@ -1363,6 +1390,17 @@ fun CustomerDetailScreen(
                             }
                         }
                     }
+
+                    if (lastPaymentInfo != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "${translate("Last Payment", language)}: $lastPaymentInfo",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (appColors.isDark) Color.LightGray else appColors.textOnHeader.copy(alpha = 0.85f),
+                            modifier = Modifier.testTag("customer_last_payment")
+                        )
+                    }
                 }
             }
 
@@ -1393,6 +1431,8 @@ fun CustomerDetailScreen(
                     color = Color.Black
                 )
             }
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
 
 
@@ -1461,6 +1501,20 @@ fun CustomerDetailScreen(
                     }
 
                     // 4. File Statement Icon
+                    val defaultActiveLoanForStatement = activeLoans.firstOrNull() ?: LoanCycle(
+                        id = -1,
+                        customerId = customer.id,
+                        loanAmount = 0.0,
+                        interestAmount = 0.0,
+                        weeklyAmount = 0.0,
+                        totalWeeks = 10,
+                        startDate = 0L,
+                        status = "NONE",
+                        notes = "",
+                        paidAmount = 0.0,
+                        uuid = "",
+                        lastModified = 0L
+                    )
                     IconButton(onClick = {
                         coroutineScope.launch {
                             try {
@@ -1470,8 +1524,8 @@ fun CustomerDetailScreen(
                                     businessName = viewModel.businessName.value,
                                     customerName = customer.name,
                                     collectionDay = customer.collectionDay,
-                                    activeLoan = activeLoan,
-                                    payments = customerPayments.filter { it.loanCycleId == activeLoan.id },
+                                    activeLoan = defaultActiveLoanForStatement,
+                                    payments = if (defaultActiveLoanForStatement.id != -1) customerPayments.filter { it.loanCycleId == defaultActiveLoanForStatement.id } else emptyList(),
                                     themeName = viewModel.selectedTheme.value,
                                     customizationCode = viewModel.statementCustomizationCode.value,
                                     customerPhone = customer.phone
@@ -1525,8 +1579,7 @@ fun CustomerDetailScreen(
                     )
                 }
             }
-        }
-        if (activeLoanReal == null) {
+        if (activeLoans.isEmpty()) {
             // No active loan cycle state
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -1576,6 +1629,10 @@ fun CustomerDetailScreen(
                 ) {
                     activeLoans.forEach { targetActiveLoan ->
                         val activePayments = customerPayments.filter { it.loanCycleId == targetActiveLoan.id }
+                        val allCustomerLoansSorted = remember(loanCycles) { loanCycles.sortedBy { it.id } }
+                        val loanIndex = allCustomerLoansSorted.indexOfFirst { it.id == targetActiveLoan.id }
+                        val loanLabel = "Loan ${loanIndex + 1}"
+
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
@@ -1583,6 +1640,13 @@ fun CustomerDetailScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    text = loanLabel,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = appColors.primaryAccent,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
                                 ActiveLoanSection(
                                     activeLoan = targetActiveLoan,
                                     payments = activePayments,
@@ -1645,10 +1709,14 @@ fun CustomerDetailScreen(
                 ) {
                     paidHistory.forEach { historicCycle ->
                         val historicPayments = customerPayments.filter { it.loanCycleId == historicCycle.id }
+                        val allCustomerLoansSorted = remember(loanCycles) { loanCycles.sortedBy { it.id } }
+                        val loanIndex = allCustomerLoansSorted.indexOfFirst { it.id == historicCycle.id }
+                        val loanLabel = "Loan ${loanIndex + 1}"
                         HistoricLoanCard(
                             historicCycle = historicCycle,
                             payments = historicPayments,
-                            onDelete = { deletingCycleTarget = historicCycle }
+                            onDelete = { deletingCycleTarget = historicCycle },
+                            loanLabel = loanLabel
                         )
                     }
                 }
@@ -2018,7 +2086,7 @@ fun PaymentHistoryRow(
 }
 
 @Composable
-fun HistoricLoanCard(historicCycle: LoanCycle, payments: List<WeeklyPayment>, onDelete: () -> Unit) {
+fun HistoricLoanCard(historicCycle: LoanCycle, payments: List<WeeklyPayment>, onDelete: () -> Unit, loanLabel: String = "Loan") {
     val totalPaid = historicCycle.paidAmount
     val totalExpected = historicCycle.loanAmount + historicCycle.interestAmount
     
@@ -2051,7 +2119,7 @@ fun HistoricLoanCard(historicCycle: LoanCycle, payments: List<WeeklyPayment>, on
             ) {
                 Column {
                     Text(
-                        text = "Settled Contract",
+                        text = "Settled $loanLabel",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = ColorGainGreen

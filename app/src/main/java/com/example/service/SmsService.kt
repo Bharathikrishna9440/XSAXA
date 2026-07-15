@@ -52,6 +52,36 @@ object SmsService {
             }
         }
 
+        // Automatic Background SMS Sending check
+        if (androidx.core.content.ContextCompat.checkSelfPermission(context, android.Manifest.permission.SEND_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            try {
+                val smsManager: android.telephony.SmsManager = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                    context.getSystemService(android.telephony.SmsManager::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    android.telephony.SmsManager.getDefault()
+                }
+
+                var targetSmsManager = smsManager
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
+                    subId?.let {
+                        targetSmsManager = android.telephony.SmsManager.getSmsManagerForSubscriptionId(it)
+                    }
+                }
+
+                if (text.length > 160) {
+                    val parts = targetSmsManager.divideMessage(text)
+                    targetSmsManager.sendMultipartTextMessage(formattedPhone, null, parts, null, null)
+                } else {
+                    targetSmsManager.sendTextMessage(formattedPhone, null, text, null, null)
+                }
+                Toast.makeText(context, "SMS sent automatically to $formattedPhone", Toast.LENGTH_SHORT).show()
+                return
+            } catch (e: Exception) {
+                Toast.makeText(context, "Auto SMS failed: ${e.message}. Launching manual...", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         try {
             val intent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("smsto:$formattedPhone")

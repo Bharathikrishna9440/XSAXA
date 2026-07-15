@@ -76,6 +76,9 @@
     <string name="connected">Connected</string>
     <string name="custom_sms_formats">Custom SMS Formats</string>
     <string name="customer_dashboard">Customer Dashboard</string>
+    <string name="customer_wise_sms_settings">Customer Wise SMS Settings</string>
+    <string name="route_no">Route No</string>
+    <string name="entry_confirmation">Entry Confirmation</string>
     <string name="customer_name">Customer Name</string>
     <string name="customer_profile">Customer Profile</string>
     <string name="customer_record_not_available_for_editing">Customer record not available for editing.</string>

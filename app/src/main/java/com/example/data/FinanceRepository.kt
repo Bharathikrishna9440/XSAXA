@@ -63,6 +63,8 @@ class FinanceRepository(private val dao: CollectionDao) {
     }
 
     suspend fun deleteCustomer(customer: Customer) {
+        dao.deletePaymentsForCustomer(customer.id)
+        dao.deleteLoanCyclesForCustomer(customer.id)
         dao.deleteCustomer(customer)
     }
 

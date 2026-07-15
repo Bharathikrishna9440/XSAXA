@@ -2400,6 +2400,18 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         markDirty()
     }
 
+    fun updateCustomerSmsSettings(customer: Customer, smsWeekly: Boolean, smsConfirmation: Boolean) {
+        viewModelScope.launch {
+            repository.updateCustomer(
+                customer.copy(
+                    smsWeeklyReminder = smsWeekly,
+                    smsConfirmationOfEntry = smsConfirmation,
+                    autoWeeklySms = smsWeekly
+                )
+            )
+        }
+    }
+
     fun setFontSizeScale(scale: Float) {
         _fontSizeScale.value = scale
         prefs.edit().putFloat("font_size_scale", scale).apply()
@@ -4143,7 +4155,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         daysToCompute.addAll(groups)
         
         val resultMap = mutableMapOf<String, DashboardStats>()
-        val loanMap = allLoans.associateBy { it.id }
+        
+        val activeCustomerIds = customers.map { it.id }.toSet()
+        val filteredLoans = allLoans.filter { it.customerId in activeCustomerIds && it.status.uppercase() != "DELETED" }
+        val loanMap = filteredLoans.associateBy { it.id }
+        val filteredActiveLoans = activeLoans.filter { it.customerId in activeCustomerIds && it.status.uppercase() != "DELETED" }
+        val filteredPayments = payments.filter { p ->
+            loanMap.containsKey(p.loanCycleId) && p.status.uppercase() != "DELETED"
+        }
         
         val cal = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
@@ -4153,15 +4172,15 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
         val startOfToday = cal.timeInMillis
         
-        val globalTodayCollection = payments
+        val globalTodayCollection = filteredPayments
             .filter { it.paymentDate >= startOfToday }
             .sumOf { it.amountPaid }
             
-        val globalTodayDeductions = allLoans
+        val globalTodayDeductions = filteredLoans
             .filter { it.startDate >= startOfToday }
             .sumOf { it.deduction }
             
-        val globalTodayInterest = payments
+        val globalTodayInterest = filteredPayments
             .filter { it.paymentDate >= startOfToday }
             .sumOf { p ->
                 val loan = loanMap[p.loanCycleId]
@@ -4174,12 +4193,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 }
             }
             
-        val globalTodayDisbursed = allLoans
+        val globalTodayDisbursed = filteredLoans
             .filter { it.startDate >= startOfToday }
             .sumOf { it.loanAmount - it.deduction }
 
-        val paymentsByLoanId = payments.filter { it.status.uppercase() != "DELETED" }.groupBy { it.loanCycleId }
-        val activeLoansMapped = activeLoans.map { loan ->
+        val paymentsByLoanId = filteredPayments.groupBy { it.loanCycleId }
+        val activeLoansMapped = filteredActiveLoans.map { loan ->
             val actualPaid = paymentsByLoanId[loan.id]?.sumOf { it.amountPaid } ?: 0.0
             loan.copy(paidAmount = actualPaid)
         }
@@ -4190,7 +4209,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             val groupCustomerIds = groupCustomers.map { it.id }.toSet()
             
             val groupActiveLoans = activeLoansMapped.filter { it.customerId in groupCustomerIds }
-            val groupAllLoans = allLoans.filter { it.customerId in groupCustomerIds }
+            val groupAllLoans = filteredLoans.filter { it.customerId in groupCustomerIds }
             
             val totalPrincipalOut = groupActiveLoans.sumOf { it.loanAmount }
             val totalInterestOut = groupActiveLoans.sumOf { it.interestAmount }
@@ -4215,7 +4234,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             val totalOutstanding = (totalPrincipalOut + totalInterestOut) - groupActiveLoans.sumOf { it.paidAmount }
             
             val groupLoanCycleIds = groupAllLoans.map { it.id }.toSet()
-            val groupTodayCollection = payments
+            val groupTodayCollection = filteredPayments
                 .filter { it.paymentDate >= startOfToday && it.loanCycleId in groupLoanCycleIds }
                 .sumOf { it.amountPaid }
                 
@@ -4223,7 +4242,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 .filter { it.startDate >= startOfToday }
                 .sumOf { it.deduction }
                 
-            val groupTodayInterest = payments
+            val groupTodayInterest = filteredPayments
                 .filter { it.paymentDate >= startOfToday && it.loanCycleId in groupLoanCycleIds }
                 .sumOf { p ->
                     val loan = loanMap[p.loanCycleId]

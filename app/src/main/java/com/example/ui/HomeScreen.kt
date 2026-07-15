@@ -651,18 +651,44 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             val hasPaymentInPast2Days = remember(allPayments, item.activeLoans) {
                                 if (item.activeLoans.isEmpty()) true
                                 else {
-                                    val activeLoanId = item.activeLoans.first().id
+                                    val todayCal = Calendar.getInstance()
+                                    val todayDayOfWeek = todayCal.get(Calendar.DAY_OF_WEEK)
+                                    val customerDayOfWeek = when {
+                                        item.customer.collectionDay.lowercase(Locale.getDefault()).contains("monday") -> Calendar.MONDAY
+                                        item.customer.collectionDay.lowercase(Locale.getDefault()).contains("tuesday") -> Calendar.TUESDAY
+                                        item.customer.collectionDay.lowercase(Locale.getDefault()).contains("wednesday") -> Calendar.WEDNESDAY
+                                        item.customer.collectionDay.lowercase(Locale.getDefault()).contains("thursday") -> Calendar.THURSDAY
+                                        item.customer.collectionDay.lowercase(Locale.getDefault()).contains("friday") -> Calendar.FRIDAY
+                                        item.customer.collectionDay.lowercase(Locale.getDefault()).contains("saturday") -> Calendar.SATURDAY
+                                        item.customer.collectionDay.lowercase(Locale.getDefault()).contains("sunday") -> Calendar.SUNDAY
+                                        else -> -1
+                                    }
+                                    val diff = if (customerDayOfWeek != -1) {
+                                        (todayDayOfWeek - customerDayOfWeek + 7) % 7
+                                    } else {
+                                        -1
+                                    }
+                                    val isCollectionWindow = diff in 0..2
+                                    
                                     val midnightToday = Calendar.getInstance().apply {
                                         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                                     }.timeInMillis
                                     val twoDaysAgoStart = midnightToday - java.util.concurrent.TimeUnit.DAYS.toMillis(2)
                                     
-                                    allPayments.any { 
-                                        it.loanCycleId == activeLoanId && 
-                                        it.paymentDate >= twoDaysAgoStart && 
-                                        it.status.uppercase() != "DELETED" && 
-                                        it.amountPaid > 0.0 
+                                    val anyActiveLoanNeedsAttention = item.activeLoans.any { activeLoan ->
+                                        val totalAmt = activeLoan.loanAmount + activeLoan.interestAmount
+                                        val balance = totalAmt - activeLoan.paidAmount
+                                        if (balance <= 0.0) return@any false
+                                        
+                                        val loanHasPayment = allPayments.any { 
+                                            it.loanCycleId == activeLoan.id && 
+                                            it.paymentDate >= twoDaysAgoStart && 
+                                            it.status.uppercase() != "DELETED" && 
+                                            it.amountPaid > 0.0 
+                                        }
+                                        isCollectionWindow && !loanHasPayment
                                     }
+                                    !anyActiveLoanNeedsAttention
                                 }
                             }
 
@@ -2310,9 +2336,9 @@ fun CustomerOverviewCard(
                             ) {
                                 Column(modifier = Modifier.weight(1.0f)) {
                                     Text(
-                                        text = "Collected ₹${CurrencyFormatter.format(activeLoan.paidAmount)} / ₹${CurrencyFormatter.format(totalAmt)}",
+                                        text = "Loan ${index + 1} • Collected ₹${CurrencyFormatter.format(activeLoan.paidAmount)} / ₹${CurrencyFormatter.format(totalAmt)}",
                                         fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
+                                        fontWeight = FontWeight.Bold,
                                         color = ColorGainGreen
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
@@ -2335,7 +2361,7 @@ fun CustomerOverviewCard(
                                 
                                 val todayPaidAmt = item.todaysPayments[activeLoan.id]
 
-                                val actualHasPaymentInPast2Days = hasPaymentInPast2Days ?: remember(viewModel.allPayments.value, activeLoan.id) {
+                                val actualHasPaymentInPast2Days = remember(viewModel.allPayments.value, activeLoan.id) {
                                     val midnightToday = Calendar.getInstance().apply {
                                         set(Calendar.HOUR_OF_DAY, 0)
                                         set(Calendar.MINUTE, 0)
@@ -2368,7 +2394,7 @@ fun CustomerOverviewCard(
                                 }
 
                                 val needsAttention = balance > 0.0 && 
-                                                     diff == 0 && 
+                                                     (diff in 0..2) && 
                                                      !actualHasPaymentInPast2Days
 
                                 val shakeOffset = if (needsAttention) translationX else 0f
