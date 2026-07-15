@@ -21,6 +21,7 @@
     <string name="amount_exceeds_outstanding_balance">राशि बकाया राशि से अधिक है</string>
     <string name="amount_must_be_greater_than_zero">राशि शून्य से अधिक होनी चाहिए।</string>
     <string name="amt_receivable_due">वसूलने योग्य राशि (बकाया)</string>
+    <string name="amt_receivable">वसूलने योग्य राशि</string>
     <string name="app_font_size_option">फ़ॉन्ट आकार विकल्प</string>
     <string name="apply_and_save_role">भूमिका लागू करें और सहेजें</string>
     <string name="are_you_sure_you_want_to_sign_out_from_the_application">क्या आप वाकई एप्लिकेशन से साइन आउट करना चाहते हैं?</string>

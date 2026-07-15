@@ -21,6 +21,7 @@
     <string name="amount_exceeds_outstanding_balance">మొత్తం బకాయి బ్యాలెన్స్ కంటే ఎక్కువగా ఉంది</string>
     <string name="amount_must_be_greater_than_zero">మొత్తం సున్నా కంటే ఎక్కువగా ఉండాలి</string>
     <string name="amt_receivable_due">రావలసిన బకాయిల మొత్తం</string>
+    <string name="amt_receivable">రావలసిన మొత్తం</string>
     <string name="app_font_size_option">ఫాంట్ సైజు మార్చు</string>
     <string name="apply_and_save_role">పాత్రను వర్తింపజేసి సేవ్ చేయండి</string>
     <string name="are_you_sure_you_want_to_sign_out_from_the_application">మీరు ఖచ్చితంగా అప్లికేషన్ నుండి సైన్ అవుట్ చేయాలనుకుంటున్నారా?</string>

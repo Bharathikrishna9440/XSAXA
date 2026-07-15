@@ -23,6 +23,7 @@
     <string name="amount_exceeds_outstanding_balance">Amount exceeds outstanding balance</string>
     <string name="amount_must_be_greater_than_zero">Amount must be greater than zero.</string>
     <string name="amt_receivable_due">Amt Receivable (Due)</string>
+    <string name="amt_receivable">Amt Receivable</string>
     <string name="app_font_size_option">App Font Size Option</string>
     <string name="app_name">MD Finance</string>
     <string name="apply_and_save_role">Apply and Save Role</string>

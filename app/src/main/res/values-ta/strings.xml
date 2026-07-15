@@ -23,6 +23,7 @@
     <string name="amount_exceeds_outstanding_balance">செலுத்த வேண்டிய நிலுவைத் தொகையை விட அதிகத் தொகை உட்செலுத்தப்பட்டுள்ளது</string>
     <string name="amount_must_be_greater_than_zero">தொகை பூஜ்ஜியத்தை விட அதிகமாக இருக்க வேண்டும்.</string>
     <string name="amt_receivable_due">வசூலிக்க வேண்டிய தொகை</string>
+    <string name="amt_receivable">வசூலிக்க வேண்டிய தொகை</string>
     <string name="app_font_size_option">எழுத்து அளவை கூட்டு</string>
     <string name="apply_and_save_role">மாற்றத்தைப் பயன்படுத்துக</string>
     <string name="are_you_sure_you_want_to_sign_out_from_the_application">நீங்கள் நிச்சயமாக வெளியேற வேண்டுமா?</string>

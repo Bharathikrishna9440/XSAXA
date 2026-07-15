@@ -1269,7 +1269,7 @@ fun CustomerDetailScreen(
                         // "amt receivable bottom left"
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = translate("Amt Receivable (Due)", language),
+                                text = translate("Amt Receivable", language),
                                 fontSize = 12.sp,
                                 color = if (appColors.isDark) Color.LightGray else appColors.textOnHeader.copy(alpha = 0.7f)
                             )
@@ -1288,7 +1288,7 @@ fun CustomerDetailScreen(
                         Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
                             Text(
                                 text = translate("Collected Amount", language),
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 color = if (appColors.isDark) Color.LightGray else appColors.textOnHeader.copy(alpha = 0.7f)
                             )
                             AnimatedNumberText(
@@ -1346,48 +1346,6 @@ fun CustomerDetailScreen(
                                 delayMillis = 450,
                                 durationMillis = 1600
                             )
-                        }
-                    }
-
-                    if (activeLoan.deduction > 0.0) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = translate("Deducted Charges", language),
-                                    fontSize = 11.sp,
-                                    color = if (appColors.isDark) Color.LightGray else appColors.textOnHeader.copy(alpha = 0.7f)
-                                )
-                                AnimatedNumberText(
-                                    targetValue = activeLoan.deduction,
-                                    prefix = "₹",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = appColors.textOnHeader,
-                                    delayMillis = 500,
-                                    durationMillis = 1600
-                                )
-                            }
-                            Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = translate("Actual Cash Disbursed", language),
-                                    fontSize = 11.sp,
-                                    color = if (appColors.isDark) Color.LightGray else appColors.textOnHeader.copy(alpha = 0.7f)
-                                )
-                                AnimatedNumberText(
-                                    targetValue = activeLoan.loanAmount - activeLoan.deduction,
-                                    prefix = "₹",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = appColors.textOnHeader,
-                                    delayMillis = 550,
-                                    durationMillis = 1600
-                                )
-                            }
                         }
                     }
 
