@@ -36,6 +36,19 @@ fun AddLoanScreen(
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    val allLoanCycles by viewModel.allLoanCycles.collectAsStateWithLifecycle()
+
+    val blackTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.Black,
+        focusedLabelColor = Color.Black,
+        unfocusedLabelColor = Color.Black,
+        focusedPlaceholderColor = Color.DarkGray,
+        unfocusedPlaceholderColor = Color.DarkGray,
+        focusedBorderColor = Color.Black,
+        unfocusedBorderColor = Color.Black
+    )
+
     val customerList by viewModel.allCustomers.collectAsStateWithLifecycle()
     val customer = customerList.find { it.id == customerId }
     var selectedSmsPhoneByUser by remember(customer?.id) { mutableStateOf(customer?.phone ?: "") }
@@ -134,16 +147,7 @@ fun AddLoanScreen(
                         label = { Text("Cash Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color.Black,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = Color(0xFF1E293B),
-                            unfocusedBorderColor = Color(0xFFCBD5E1)
-                        ),
+                        colors = blackTextFieldColors,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -171,16 +175,7 @@ fun AddLoanScreen(
                         label = { Text("Online Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color.Black,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = Color(0xFF1E293B),
-                            unfocusedBorderColor = Color(0xFFCBD5E1)
-                        ),
+                        colors = blackTextFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -218,16 +213,7 @@ fun AddLoanScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
+                    colors = blackTextFieldColors,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("loan_principal_input")
@@ -251,16 +237,7 @@ fun AddLoanScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -281,16 +258,7 @@ fun AddLoanScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth().testTag("loan_deduction_input")
             )
 
@@ -316,16 +284,7 @@ fun AddLoanScreen(
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp), singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag("loan_weekly_instalment_input")
@@ -364,16 +323,7 @@ fun AddLoanScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
+                    colors = blackTextFieldColors,
                     modifier = Modifier.weight(1.0f)
                 )
 
@@ -426,16 +376,7 @@ fun AddLoanScreen(
                 placeholder = { Text("Remarks details") },
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -731,18 +672,33 @@ fun AddLoanScreen(
                             )
                         }
                     } else {
-                        viewModel.createLoanCycle(
-                            customerId = customerId,
-                            amount = p!!,
-                            interest = interestVal,
-                            weeklyInstalment = w!!,
-                            tenureWeeks = t!!,
-                            notes = finalNotes,
-                            startDate = uiState.loanTimestamp,
-                            deduction = deductionVal,
-                            customSmsPhone = if (customer != null && customer.phone2.isNotBlank() && customer.smsConfirmationOfEntry) selectedSmsPhoneByUser else null
-                        )
-                        viewModel.navigateBack()
+                        val daySdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+                        val targetDateStr = daySdf.format(Date(uiState.loanTimestamp))
+                        val isDuplicate = allLoanCycles.any { existing ->
+                            existing.customerId == customerId &&
+                            existing.status.uppercase() != "DELETED" &&
+                            existing.loanAmount == p!! &&
+                            existing.interestAmount == interestVal &&
+                            existing.deduction == deductionVal &&
+                            daySdf.format(Date(existing.startDate)) == targetDateStr
+                        }
+
+                        if (isDuplicate) {
+                            android.widget.Toast.makeText(context, "Duplicate entry: Loan already exists on this date!", android.widget.Toast.LENGTH_LONG).show()
+                        } else {
+                            viewModel.createLoanCycle(
+                                customerId = customerId,
+                                amount = p!!,
+                                interest = interestVal,
+                                weeklyInstalment = w!!,
+                                tenureWeeks = t!!,
+                                notes = finalNotes,
+                                startDate = uiState.loanTimestamp,
+                                deduction = deductionVal,
+                                customSmsPhone = if (customer != null && customer.phone2.isNotBlank() && customer.smsConfirmationOfEntry) selectedSmsPhoneByUser else null
+                            )
+                            viewModel.navigateBack()
+                        }
                     }
                 },
                 colors = ButtonDefaults.buttonColors(

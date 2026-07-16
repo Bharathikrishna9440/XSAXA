@@ -129,6 +129,17 @@ fun EditLoanScreen(
     var notes by rememberSaveable(inputs = arrayOf(targetLoan.id)) { mutableStateOf(cleanNotes) }
     var isWeeklyInstalmentManuallyEdited by rememberSaveable { mutableStateOf(false) }
 
+    val blackTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.Black,
+        focusedLabelColor = Color.Black,
+        unfocusedLabelColor = Color.Black,
+        focusedPlaceholderColor = Color.DarkGray,
+        unfocusedPlaceholderColor = Color.DarkGray,
+        focusedBorderColor = Color.Black,
+        unfocusedBorderColor = Color.Black
+    )
+
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
     var startDateVal by rememberSaveable(inputs = arrayOf(targetLoan.id)) { mutableLongStateOf(targetLoan.startDate) }
     val startDateStr = remember(startDateVal) { sdf.format(java.util.Date(startDateVal)) }
@@ -218,16 +229,7 @@ fun EditLoanScreen(
                         label = { Text("Cash Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color.Black,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = Color(0xFF1E293B),
-                            unfocusedBorderColor = Color(0xFFCBD5E1)
-                        ),
+                        colors = blackTextFieldColors,
                         modifier = Modifier.weight(1f)
                     )
 
@@ -250,16 +252,7 @@ fun EditLoanScreen(
                         label = { Text("Online Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.Black,
-                            unfocusedTextColor = Color.Black,
-                            focusedLabelColor = Color.Black,
-                            unfocusedLabelColor = Color.Black,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = Color(0xFF1E293B),
-                            unfocusedBorderColor = Color(0xFFCBD5E1)
-                        ),
+                        colors = blackTextFieldColors,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -287,16 +280,7 @@ fun EditLoanScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
+                    colors = blackTextFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -312,16 +296,7 @@ fun EditLoanScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -348,16 +323,7 @@ fun EditLoanScreen(
                         Text("Actual Cash Disbursed to Client: ₹${actual.toLong()}", color = if (actual < 0) Color.Red else Color.Gray)
                     }
                 },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth().testTag("loan_deduction_input")
             )
 
@@ -373,16 +339,7 @@ fun EditLoanScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -409,16 +366,7 @@ fun EditLoanScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.Black,
-                        unfocusedTextColor = Color.Black,
-                        focusedLabelColor = Color.Black,
-                        unfocusedLabelColor = Color.Black,
-                        focusedPlaceholderColor = Color.DarkGray,
-                        unfocusedPlaceholderColor = Color.DarkGray,
-                        focusedBorderColor = ColorSlateDark,
-                        unfocusedBorderColor = Color(0xFFCBD5E1)
-                    ),
+                    colors = blackTextFieldColors,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -471,16 +419,7 @@ fun EditLoanScreen(
                 placeholder = { Text("Remarks details") },
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -492,16 +431,7 @@ fun EditLoanScreen(
                 onValueChange = {},
                 label = { Text("Date & Time of Disbursal") },
                 readOnly = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedLabelColor = Color.Black,
-                    unfocusedLabelColor = Color.Black,
-                    focusedPlaceholderColor = Color.DarkGray,
-                    unfocusedPlaceholderColor = Color.DarkGray,
-                    focusedBorderColor = ColorSlateDark,
-                    unfocusedBorderColor = Color(0xFFCBD5E1)
-                ),
+                colors = blackTextFieldColors,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showDatePicker() },
