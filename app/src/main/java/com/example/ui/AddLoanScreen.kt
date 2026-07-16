@@ -134,6 +134,16 @@ fun AddLoanScreen(
                         label = { Text("Cash Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color.Black,
+                            focusedPlaceholderColor = Color.DarkGray,
+                            unfocusedPlaceholderColor = Color.DarkGray,
+                            focusedBorderColor = Color(0xFF1E293B),
+                            unfocusedBorderColor = Color(0xFFCBD5E1)
+                        ),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -161,6 +171,16 @@ fun AddLoanScreen(
                         label = { Text("Online Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black,
+                            focusedLabelColor = Color.Black,
+                            unfocusedLabelColor = Color.Black,
+                            focusedPlaceholderColor = Color.DarkGray,
+                            unfocusedPlaceholderColor = Color.DarkGray,
+                            focusedBorderColor = Color(0xFF1E293B),
+                            unfocusedBorderColor = Color(0xFFCBD5E1)
+                        ),
                         modifier = Modifier.weight(1f)
                     )
                 }

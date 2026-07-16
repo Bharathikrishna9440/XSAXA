@@ -278,8 +278,13 @@ fun PaymentCalendarMatrix(payments: List<WeeklyPayment>, loanCycles: List<LoanCy
                                 val isPaid = payments.any { p ->
                                     p.status == "ACTIVE" && p.amountPaid > 0.0 && p.paymentDate in startMs..endMs
                                 }
+                                val isDisbursedThisWeek = loanCycles.any { loan ->
+                                    loan.startDate in startMs..endMs
+                                }
                                 
-                                val dotColor = if (isCovered) {
+                                val dotColor = if (isDisbursedThisWeek) {
+                                    Color(0xFFFFD700) // Yellow / Gold for disbursal week
+                                } else if (isCovered) {
                                     if (isPaid) ColorGainGreen else ColorLossRed
                                 } else {
                                     Color(0xFFCBD5E1) // Grey out point if no active cycle represents this duration
