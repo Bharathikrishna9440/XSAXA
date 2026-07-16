@@ -1076,7 +1076,7 @@ fun DisbursalDetailLayout(
                     
                     val cashVal = cashStr.toDoubleOrNull() ?: 0.0
                     val onlineVal = onlineStr.toDoubleOrNull() ?: 0.0
-                    return Pair(cashVal - item.deduction, onlineVal)
+                    return Pair(cashVal, onlineVal)
                 }
             } catch (e: Exception) {
                 // fallback
@@ -1132,7 +1132,7 @@ fun DisbursalDetailLayout(
                         
                         val cashVal = cashStr.toDoubleOrNull() ?: 0.0
                         val onlineVal = onlineStr.toDoubleOrNull() ?: 0.0
-                        cashSum += (cashVal - item.deduction)
+                        cashSum += cashVal
                         onlineSum += onlineVal
                     } else {
                         cashSum += item.actualDisbursed
