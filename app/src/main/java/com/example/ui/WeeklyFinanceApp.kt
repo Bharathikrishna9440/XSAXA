@@ -822,10 +822,11 @@ fun WeeklyFinanceApp(
                                                     HorizontalDivider()
                                                     customerLoans.forEachIndexed { index, loan ->
                                                         val activeLoansCount = customerLoans.count { it.status == "ACTIVE" }
-                                                        val label = if (activeLoansCount <= 1 && (index + 1) == 1) "Loan" else "Loan ${index + 1}"
+                                                        val label = if (loan.status == "ACTIVE") { if (customerLoans.count { it.status == "ACTIVE" } <= 1) "Loan" else "Loan ${customerLoans.filter { it.status == "ACTIVE" }.indexOfFirst { it.id == loan.id } + 1}" } else { "Closed Loan ${customerLoans.filter { it.status != "ACTIVE" }.indexOfFirst { it.id == loan.id } + 1}" }
                                                         val isLoanActive = loan.status == "ACTIVE"
                                                         val statusLabel = if (isLoanActive) "Active" else "Settled"
                                                         
+                                                        if (isLoanActive) {
                                                         DropdownMenuItem(
                                                             text = { Text("Edit $label ($statusLabel)") },
                                                             leadingIcon = { Icon(Icons.Default.CurrencyExchange, contentDescription = null, modifier = Modifier.size(16.dp)) },
@@ -834,6 +835,7 @@ fun WeeklyFinanceApp(
                                                                 viewModel.navigateTo(Screen.EditLoan(loan.id))
                                                             }
                                                         )
+                                                        }
                                                         DropdownMenuItem(
                                                             text = { Text("Delete $label ($statusLabel)", color = ColorLossRed) },
                                                             leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = ColorLossRed, modifier = Modifier.size(16.dp)) },
