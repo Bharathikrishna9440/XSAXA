@@ -440,12 +440,12 @@ fun FullLedgerHistoryScreen(viewModel: FinanceViewModel) {
                 set(Calendar.MILLISECOND, 999)
             }.timeInMillis
             
-            val dayPayments = allPayments.filter { it.paymentDate in startMs..endMs }
+            val dayPayments = allPayments.filter { it.paymentDate in startMs..endMs && it.status.uppercase() != "DELETED" }
             val dayPaymentsSum = dayPayments.sumOf { it.amountPaid }
-            val dayLoanSum = allLoanCycles.filter { it.startDate in startMs..endMs }.sumOf { it.loanAmount }
+            val dayLoanSum = allLoanCycles.filter { it.startDate in startMs..endMs && it.status.uppercase() != "DELETED" }.sumOf { it.loanAmount - it.deduction }
             val dayInterestSum = dayPayments.sumOf { p ->
                 val loan = loanMap[p.loanCycleId]
-                if (loan != null) {
+                if (loan != null && loan.status.uppercase() != "DELETED") {
                     val total = loan.loanAmount + loan.interestAmount
                     val ratio = if (total > 0.0) loan.interestAmount / total else 0.0
                     p.amountPaid * ratio

@@ -113,11 +113,11 @@ fun CalculationDetailScreen(
 
     // Computations
     val paymentsToday = remember(allPayments, startOfToday) {
-        allPayments.filter { it.paymentDate >= startOfToday && it.status == "ACTIVE" }
+        allPayments.filter { it.paymentDate >= startOfToday && it.status.uppercase() != "DELETED" }
     }
 
     val loansToday = remember(allLoanCycles, startOfToday) {
-        allLoanCycles.filter { l -> l.startDate >= startOfToday && l.status != "DELETED" }
+        allLoanCycles.filter { l -> l.startDate >= startOfToday && l.status.uppercase() != "DELETED" }
     }
 
     // Title and stats setup

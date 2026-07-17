@@ -183,12 +183,27 @@ fun PaymentCalendarMatrix(payments: List<WeeklyPayment>, loanCycles: List<LoanCy
 
     // Helper to determine cover period 
     fun isWeekCoveredByLoan(startMs: Long, endMs: Long, loan: LoanCycle, payments: List<WeeklyPayment>): Boolean {
-        val coverStart = loan.startDate
+        val loanPayments = payments.filter { it.loanCycleId == loan.id && it.status.uppercase() != "DELETED" }
+        val firstPaymentDate = loanPayments.minOfOrNull { it.paymentDate }
+        
+        // A dispersal date is considered wrong/incorrect if:
+        // - It is after the first payment date (since dispersal must happen before or on the first collection).
+        // - Or if it's very close to today/now (e.g. imported fallback) but we have older payments.
+        val isDispersalDateWrong = firstPaymentDate != null && (
+            loan.startDate > firstPaymentDate || 
+            (Math.abs(loan.startDate - System.currentTimeMillis()) < 60_000 && firstPaymentDate < loan.startDate - 60_000)
+        )
+        
+        val coverStart = if (isDispersalDateWrong && firstPaymentDate != null) {
+            firstPaymentDate
+        } else {
+            loan.startDate
+        }
+        
         val coverEnd = if (loan.status.uppercase() == "ACTIVE") {
             System.currentTimeMillis()
         } else {
             // PAID
-            val loanPayments = payments.filter { it.loanCycleId == loan.id }
             loanPayments.maxOfOrNull { it.paymentDate } ?: loan.startDate
         }
         return endMs >= coverStart && startMs <= coverEnd

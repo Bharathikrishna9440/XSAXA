@@ -196,16 +196,42 @@ object CsvBackupHelper {
 
 
     private fun parseDateStringWithFallback(dateStr: String, fallback: () -> Long): Long {
-        if (dateStr.isBlank()) return fallback()
-        return try {
-            dateFormat.parse(dateStr)?.time ?: fallback()
-        } catch (e: Exception) {
+        val trimmed = dateStr.trim()
+        if (trimmed.isBlank()) return fallback()
+        
+        if (trimmed.all { it.isDigit() }) {
+            val longVal = trimmed.toLongOrNull()
+            if (longVal != null) return longVal
+        }
+        
+        val formats = listOf(
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy-MM-dd",
+            "dd/MM/yyyy HH:mm:ss",
+            "dd/MM/yyyy HH:mm",
+            "dd/MM/yyyy",
+            "dd-MM-yyyy HH:mm:ss",
+            "dd-MM-yyyy HH:mm",
+            "dd-MM-yyyy",
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm",
+            "yyyy/MM/dd"
+        )
+        
+        for (pattern in formats) {
             try {
-                dateTimeFormat.parse(dateStr)?.time ?: fallback()
-            } catch (e2: Exception) {
-                dateStr.toLongOrNull() ?: fallback()
+                val sdf = SimpleDateFormat(pattern, Locale.US)
+                val parsed = sdf.parse(trimmed)
+                if (parsed != null) {
+                    return parsed.time
+                }
+            } catch (e: Exception) {
+                // Keep trying next format
             }
         }
+        
+        return fallback()
     }
 
     /**

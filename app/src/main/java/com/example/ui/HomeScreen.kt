@@ -2619,13 +2619,13 @@ fun HomePerformanceDashboard(
             val startMs = startCal.timeInMillis
             val endMs = endCal.timeInMillis
             
-            val dayPayments = allPayments.filter { it.paymentDate in startMs..endMs }
+            val dayPayments = allPayments.filter { it.paymentDate in startMs..endMs && it.status.uppercase() != "DELETED" }
             val dayPaymentsSum = dayPayments.sumOf { it.amountPaid }
-            val dayLoanSum = allLoanCycles.filter { it.startDate in startMs..endMs }.sumOf { it.loanAmount }
+            val dayLoanSum = allLoanCycles.filter { it.startDate in startMs..endMs && it.status.uppercase() != "DELETED" }.sumOf { it.loanAmount - it.deduction }
             val loanMap = allLoanCycles.associateBy { it.id }
             val dayInterestSum = dayPayments.sumOf { p ->
                 val loan = loanMap[p.loanCycleId]
-                if (loan != null) {
+                if (loan != null && loan.status.uppercase() != "DELETED") {
                     val total = loan.loanAmount + loan.interestAmount
                     val ratio = if (total > 0.0) loan.interestAmount / total else 0.0
                     p.amountPaid * ratio
@@ -2679,19 +2679,19 @@ fun HomePerformanceDashboard(
         }
         val endOfPrevWeekMs = endOfPrevWeekCal.timeInMillis
         
-        val curCollection = allPayments.filter { it.paymentDate in startOfCurrentWeekMs..endOfTodayMs }.sumOf { it.amountPaid }
-        val prevCollection = allPayments.filter { it.paymentDate in startOfPrevWeekMs..endOfPrevWeekMs }.sumOf { it.amountPaid }
+        val curCollection = allPayments.filter { it.paymentDate in startOfCurrentWeekMs..endOfTodayMs && it.status.uppercase() != "DELETED" }.sumOf { it.amountPaid }
+        val prevCollection = allPayments.filter { it.paymentDate in startOfPrevWeekMs..endOfPrevWeekMs && it.status.uppercase() != "DELETED" }.sumOf { it.amountPaid }
         
-        val curDueCreated = allLoanCycles.filter { it.startDate in startOfCurrentWeekMs..endOfTodayMs }.sumOf { it.loanAmount }
-        val prevDueCreated = allLoanCycles.filter { it.startDate in startOfPrevWeekMs..endOfPrevWeekMs }.sumOf { it.loanAmount }
+        val curDueCreated = allLoanCycles.filter { it.startDate in startOfCurrentWeekMs..endOfTodayMs && it.status.uppercase() != "DELETED" }.sumOf { it.loanAmount - it.deduction }
+        val prevDueCreated = allLoanCycles.filter { it.startDate in startOfPrevWeekMs..endOfPrevWeekMs && it.status.uppercase() != "DELETED" }.sumOf { it.loanAmount - it.deduction }
         
         val loanMap = allLoanCycles.associateBy { it.id }
-        val curPayments = allPayments.filter { it.paymentDate in startOfCurrentWeekMs..endOfTodayMs }
-        val prevPayments = allPayments.filter { it.paymentDate in startOfPrevWeekMs..endOfPrevWeekMs }
+        val curPayments = allPayments.filter { it.paymentDate in startOfCurrentWeekMs..endOfTodayMs && it.status.uppercase() != "DELETED" }
+        val prevPayments = allPayments.filter { it.paymentDate in startOfPrevWeekMs..endOfPrevWeekMs && it.status.uppercase() != "DELETED" }
 
         val curInterest = curPayments.sumOf { p ->
             val loan = loanMap[p.loanCycleId]
-            if (loan != null) {
+            if (loan != null && loan.status.uppercase() != "DELETED") {
                 val total = loan.loanAmount + loan.interestAmount
                 val ratio = if (total > 0.0) loan.interestAmount / total else 0.0
                 p.amountPaid * ratio
@@ -2701,7 +2701,7 @@ fun HomePerformanceDashboard(
         }
         val prevInterest = prevPayments.sumOf { p ->
             val loan = loanMap[p.loanCycleId]
-            if (loan != null) {
+            if (loan != null && loan.status.uppercase() != "DELETED") {
                 val total = loan.loanAmount + loan.interestAmount
                 val ratio = if (total > 0.0) loan.interestAmount / total else 0.0
                 p.amountPaid * ratio

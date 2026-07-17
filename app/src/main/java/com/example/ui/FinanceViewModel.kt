@@ -1317,6 +1317,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val finalLoans = db.collectionDao().getAllLoanCyclesOnce()
                 val finalPayments = db.collectionDao().getAllPaymentsOnce()
                 for (loan in finalLoans) {
+                    if (loan.status.uppercase() == "DELETED") continue
                     val sumPaid = finalPayments.filter { it.loanCycleId == loan.id && it.status.uppercase() != "DELETED" }.sumOf { it.amountPaid }
                     val targetAmount = loan.loanAmount + loan.interestAmount
                     val computedStatus = if (sumPaid >= targetAmount) "PAID" else "ACTIVE"
@@ -1358,6 +1359,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val finalLoans = db.collectionDao().getAllLoanCyclesOnce()
                 val finalPayments = db.collectionDao().getAllPaymentsOnce()
                 for (loan in finalLoans) {
+                    if (loan.status.uppercase() == "DELETED") continue
                     val sumPaid = finalPayments.filter { it.loanCycleId == loan.id && it.status.uppercase() != "DELETED" }.sumOf { it.amountPaid }
                     val targetAmount = loan.loanAmount + loan.interestAmount
                     val computedStatus = if (sumPaid >= targetAmount) "PAID" else "ACTIVE"
@@ -4958,6 +4960,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             val finalPayments = db.collectionDao().getAllPaymentsOnce()
             
             for (loan in finalLoans) {
+                if (loan.status.uppercase() == "DELETED") continue
                 val sumPaid = finalPayments.filter { it.loanCycleId == loan.id && it.status.uppercase() != "DELETED" }.sumOf { it.amountPaid }
                 val targetAmount = loan.loanAmount + loan.interestAmount
                 val shouldBePaid = sumPaid >= targetAmount
@@ -5549,6 +5552,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val finalPayments = db.collectionDao().getAllPaymentsOnce()
                 
                 for (loan in finalLoans) {
+                    if (loan.status.uppercase() == "DELETED") continue
                     val sumPaid = finalPayments.filter { it.loanCycleId == loan.id && it.status.uppercase() != "DELETED" }.sumOf { it.amountPaid }
                     val targetAmount = loan.loanAmount + loan.interestAmount
                     val shouldBePaid = sumPaid >= targetAmount
