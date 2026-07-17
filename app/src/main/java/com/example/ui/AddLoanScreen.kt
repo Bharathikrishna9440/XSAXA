@@ -156,7 +156,7 @@ fun AddLoanScreen(
                                 )
                             }
                         },
-                        label = { Text("Online Principal (₹)") },
+                        label = { Text("UPI Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
                         colors = blackTextFieldColors,
@@ -311,45 +311,35 @@ fun AddLoanScreen(
                     modifier = Modifier.weight(1.0f)
                 )
 
-                Column(
-                    modifier = Modifier.weight(1.0f)
-                ) {
-                    if (!uiState.isMultipleMode) {
-                        Text(
-                            text = "Disbursal Mode",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                if (!uiState.isMultipleMode) {
+                    val currentMode = uiState.disbursalMode
+                    val isCash = currentMode == "Cash"
+                    Box(
+                        modifier = Modifier
+                            .weight(1.0f)
+                            .clickable {
+                                val nextMode = if (isCash) "UPI" else "Cash"
+                                viewModel.updateAddLoanState { it.copy(disbursalMode = nextMode) }
+                            }
+                    ) {
+                        OutlinedTextField(
+                            value = if (isCash) "CASH" else "UPI",
+                            onValueChange = {},
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text("Disbursal Mode") },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = if (isCash) Color(0xFF15803D) else Color(0xFF1D4ED8),
+                                disabledContainerColor = if (isCash) Color(0xFFDCFCE7) else Color(0xFFDBEAFE),
+                                disabledBorderColor = if (isCash) Color(0xFF16A34A) else Color(0xFF2563EB),
+                                disabledLabelColor = Color.DarkGray
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .background(
-                                    color = if (uiState.disbursalMode == "Cash") Color(0xFFDCFCE7) else Color(0xFFDBEAFE),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .border(
-                                    width = 1.5.dp,
-                                    color = if (uiState.disbursalMode == "Cash") Color(0xFF16A34A) else Color(0xFF2563EB),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clickable {
-                                    val nextMode = if (uiState.disbursalMode == "Cash") "Online" else "Cash"
-                                    viewModel.updateAddLoanState { it.copy(disbursalMode = nextMode) }
-                                }
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = uiState.disbursalMode.uppercase(Locale.getDefault()),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black,
-                                color = if (uiState.disbursalMode == "Cash") Color(0xFF15803D) else Color(0xFF1D4ED8)
-                            )
-                        }
                     }
+                } else {
+                    Spacer(modifier = Modifier.weight(1.0f))
                 }
             }
 
@@ -514,7 +504,7 @@ fun AddLoanScreen(
                     .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Multiple Modes (Cash + Online)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
+                Text("Multiple Modes (Cash + UPI)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
                 Checkbox(
                     checked = uiState.isMultipleMode,
                     onCheckedChange = { checked -> 
@@ -617,9 +607,9 @@ fun AddLoanScreen(
                     }
                     
                     val finalNotes = if (uiState.isMultipleMode) {
-                        "Multiple - Cash: ₹${uiState.cashPrincipalStr.ifBlank { "0" }}, Online: ₹${uiState.onlinePrincipalStr.ifBlank { "0" }}. ${uiState.notes}"
-                    } else if (uiState.disbursalMode == "Online") {
-                        "Online - ${uiState.notes}"
+                        "Multiple - Cash: ₹${uiState.cashPrincipalStr.ifBlank { "0" }}, UPI: ₹${uiState.onlinePrincipalStr.ifBlank { "0" }}. ${uiState.notes}"
+                    } else if (uiState.disbursalMode == "Online" || uiState.disbursalMode == "UPI") {
+                        "UPI - ${uiState.notes}"
                     } else {
                         uiState.notes
                     }
