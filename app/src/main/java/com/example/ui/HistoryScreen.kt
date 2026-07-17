@@ -566,31 +566,21 @@ fun FullLedgerHistoryScreen(viewModel: FinanceViewModel) {
 
         // Custom Selection Date Pickers - ALWAYS VISIBLE NOW
         val context = LocalContext.current
-        fun showDatePickerDialog(currentVal: String, onSelected: (String) -> Unit) {
+        var showFromDatePickerState by remember { mutableStateOf(false) }
+        var showToDatePickerState by remember { mutableStateOf(false) }
+
+        val fromMills = remember(customFromDate) {
             try {
-                val sdfParser = SimpleDateFormat("dd/MM/yyyy", Locale.US)
-                val calendar = Calendar.getInstance()
-                try {
-                    sdfParser.parse(currentVal)?.let { calendar.time = it }
-                } catch (e: Exception) {}
-                
-                android.app.DatePickerDialog(
-            context.findActivity() ?: context,
-                    { _, year, month, day ->
-                        val newCal = Calendar.getInstance()
-                        newCal.set(Calendar.YEAR, year)
-                        newCal.set(Calendar.MONTH, month)
-                        newCal.set(Calendar.DAY_OF_MONTH, day)
-                        val formattedDate = sdfParser.format(newCal.time)
-                        onSelected(formattedDate)
-                        activeFilter = "" // Clear the quick filter state when manual dates are selected
-                    },
-                    calendar.get(Calendar.YEAR),
-                    calendar.get(Calendar.MONTH),
-                    calendar.get(Calendar.DAY_OF_MONTH)
-                ).show()
+                SimpleDateFormat("dd/MM/yyyy", Locale.US).parse(customFromDate)?.time ?: System.currentTimeMillis()
             } catch (e: Exception) {
-                e.printStackTrace()
+                System.currentTimeMillis()
+            }
+        }
+        val toMills = remember(customToDate) {
+            try {
+                SimpleDateFormat("dd/MM/yyyy", Locale.US).parse(customToDate)?.time ?: System.currentTimeMillis()
+            } catch (e: Exception) {
+                System.currentTimeMillis()
             }
         }
 
@@ -600,7 +590,7 @@ fun FullLedgerHistoryScreen(viewModel: FinanceViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
-                onClick = { showDatePickerDialog(customFromDate) { customFromDate = it } },
+                onClick = { showFromDatePickerState = true },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp),
                 border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
@@ -624,7 +614,7 @@ fun FullLedgerHistoryScreen(viewModel: FinanceViewModel) {
             }
 
             OutlinedButton(
-                onClick = { showDatePickerDialog(customToDate) { customToDate = it } },
+                onClick = { showToDatePickerState = true },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(8.dp),
                 border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
@@ -646,6 +636,32 @@ fun FullLedgerHistoryScreen(viewModel: FinanceViewModel) {
                     )
                 }
             }
+        }
+
+        if (showFromDatePickerState) {
+            com.example.ui.components.AdvancedDatePickerDialog(
+                initialTimeMs = fromMills,
+                onDismissRequest = { showFromDatePickerState = false },
+                onDateSelected = { selectedTimeMs ->
+                    val formatted = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(java.util.Date(selectedTimeMs))
+                    customFromDate = formatted
+                    activeFilter = ""
+                    showFromDatePickerState = false
+                }
+            )
+        }
+
+        if (showToDatePickerState) {
+            com.example.ui.components.AdvancedDatePickerDialog(
+                initialTimeMs = toMills,
+                onDismissRequest = { showToDatePickerState = false },
+                onDateSelected = { selectedTimeMs ->
+                    val formatted = SimpleDateFormat("dd/MM/yyyy", Locale.US).format(java.util.Date(selectedTimeMs))
+                    customToDate = formatted
+                    activeFilter = ""
+                    showToDatePickerState = false
+                }
+            )
         }
 
         // Search Bar

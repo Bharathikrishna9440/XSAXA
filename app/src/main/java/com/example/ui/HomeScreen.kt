@@ -943,7 +943,10 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
         val entry = editingPaymentTarget!!
         var amtText by remember(entry.id) { mutableStateOf(entry.amountPaid.toInt().toString()) }
         var wkNumText by remember(entry.id) { mutableStateOf(entry.weekNumber.toString()) }
-        var noteText by remember(entry.id) { mutableStateOf(entry.notes.ifBlank { "Cash" }) }
+        var noteText by remember(entry.id) {
+            val initialNote = entry.notes.ifBlank { "Cash" }
+            mutableStateOf(if (initialNote.equals("Online", ignoreCase = true)) "UPI" else initialNote)
+        }
         
         val sdfEdit = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
         var dateText by remember(entry.id) { mutableStateOf(sdfEdit.format(java.util.Date(entry.paymentDate))) }
@@ -954,24 +957,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
             entry.paymentDate
         }
 
-        val showDatePicker = {
-            val calendar = Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
-            android.app.DatePickerDialog(
-            context.findActivity() ?: context,
-                { _, year, month, dayOfMonth ->
-                    val newCalendar = Calendar.getInstance().apply {
-                        timeInMillis = parsedTimestamp
-                        set(Calendar.YEAR, year)
-                        set(Calendar.MONTH, month)
-                        set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                    }
-                    dateText = sdfEdit.format(java.util.Date(newCalendar.timeInMillis))
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            ).show()
-        }
+        var showDatePickerState by remember { mutableStateOf(false) }
 
         val showTimePicker = {
             val calendar = Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
@@ -1049,10 +1035,10 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showDatePicker() },
+                            .clickable { showDatePickerState = true },
                         trailingIcon = {
                             Row {
-                                IconButton(onClick = { showDatePicker() }) {
+                                IconButton(onClick = { showDatePickerState = true }) {
                                     Icon(imageVector = androidx.compose.material.icons.Icons.Default.DateRange, contentDescription = "Pick Date", tint = appColors.primaryAccent)
                                 }
                                 IconButton(onClick = { showTimePicker() }) {
@@ -1061,6 +1047,17 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             }
                         }
                     )
+
+                    if (showDatePickerState) {
+                        com.example.ui.components.AdvancedDatePickerDialog(
+                            initialTimeMs = parsedTimestamp,
+                            onDismissRequest = { showDatePickerState = false },
+                            onDateSelected = { selectedTimeMs ->
+                                dateText = sdfEdit.format(java.util.Date(selectedTimeMs))
+                                showDatePickerState = false
+                            }
+                        )
+                    }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1077,13 +1074,13 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             Text(translate("Cash", language), color = if (noteText == "Cash") appColors.primaryAccent else Color.DarkGray, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(vertical = 10.dp), textAlign = TextAlign.Center)
                         }
                         Surface(
-                            onClick = { noteText = "Online" },
+                            onClick = { noteText = "UPI" },
                             shape = RoundedCornerShape(8.dp),
-                            color = if (noteText == "Online") appColors.primaryAccent.copy(alpha = 0.15f) else Color.Transparent,
-                            border = BorderStroke(1.dp, if (noteText == "Online") appColors.primaryAccent else Color(0xFFCBD5E1)),
+                            color = if (noteText == "UPI") appColors.primaryAccent.copy(alpha = 0.15f) else Color.Transparent,
+                            border = BorderStroke(1.dp, if (noteText == "UPI") appColors.primaryAccent else Color(0xFFCBD5E1)),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(translate("Online", language), color = if (noteText == "Online") appColors.primaryAccent else Color.DarkGray, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(vertical = 10.dp), textAlign = TextAlign.Center)
+                            Text(translate("UPI", language), color = if (noteText == "UPI") appColors.primaryAccent else Color.DarkGray, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(vertical = 10.dp), textAlign = TextAlign.Center)
                         }
                     }
                 }

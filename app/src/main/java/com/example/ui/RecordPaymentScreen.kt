@@ -87,24 +87,7 @@ fun RecordPaymentScreen(
         System.currentTimeMillis()
     }
 
-    val showDatePicker = {
-        val calendar = Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
-        android.app.DatePickerDialog(
-            context.findActivity() ?: context,
-            { _, year, month, dayOfMonth ->
-                val newCalendar = Calendar.getInstance().apply {
-                    timeInMillis = parsedTimestamp
-                    set(Calendar.YEAR, year)
-                    set(Calendar.MONTH, month)
-                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                }
-                paymentDateStr = sdf.format(Date(newCalendar.timeInMillis))
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
-    }
+    var showDatePickerState by remember { mutableStateOf(false) }
 
     val showTimePicker = {
         val calendar = Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
@@ -183,7 +166,7 @@ fun RecordPaymentScreen(
                             onlineAmountStr = input.filter { it.isDigit() }
                             amountErrorText = null
                         },
-                        label = { Text("Online (₹)") },
+                        label = { Text("UPI (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp),
                         singleLine = true,
@@ -296,7 +279,7 @@ fun RecordPaymentScreen(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
-                                    notes = if (notes == "Cash") "Online" else "Cash"
+                                    notes = if (notes == "Cash") "UPI" else "Cash"
                                 }
                                 .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.Center
@@ -425,7 +408,7 @@ fun RecordPaymentScreen(
                         .weight(1f)
                         .background(ColorSlateDark.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
                         .border(1.5.dp, ColorSlateDark.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                        .clickable { showDatePicker() }
+                        .clickable { showDatePickerState = true }
                         .padding(12.dp)
                 ) {
                     Column {
@@ -438,6 +421,17 @@ fun RecordPaymentScreen(
                             color = ColorSlateDark
                         )
                     }
+                }
+
+                if (showDatePickerState) {
+                    com.example.ui.components.AdvancedDatePickerDialog(
+                        initialTimeMs = parsedTimestamp,
+                        onDismissRequest = { showDatePickerState = false },
+                        onDateSelected = { selectedTimeMs ->
+                            paymentDateStr = sdf.format(Date(selectedTimeMs))
+                            showDatePickerState = false
+                        }
+                    )
                 }
 
                 // Time Box
@@ -474,7 +468,7 @@ fun RecordPaymentScreen(
                     .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Multiple Modes (Cash + Online)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
+                Text("Multiple Modes (Cash + UPI)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
                 Checkbox(
                     checked = isMultipleMode,
                     onCheckedChange = { isMultipleMode = it },
@@ -563,7 +557,7 @@ fun RecordPaymentScreen(
                     }
                     
                     val finalNotes = if (isMultipleMode) {
-                        "Multiple - Cash: ₹${cashAmountStr.ifBlank { "0" }}, Online: ₹${onlineAmountStr.ifBlank { "0" }}"
+                        "Multiple - Cash: ₹${cashAmountStr.ifBlank { "0" }}, UPI: ₹${onlineAmountStr.ifBlank { "0" }}"
                     } else {
                         notes
                     }

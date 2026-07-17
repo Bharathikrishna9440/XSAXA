@@ -54,8 +54,8 @@
     <string name="cash_disbursed">Cash Disbursed</string>
     <string name="cash_gpay_etc">Cash, GPay, etc</string>
     <string name="cash_received">Cash Received</string>
-    <string name="online_disbursed">Online Disbursed</string>
-    <string name="online_received">Online Received</string>
+    <string name="online_disbursed">UPI Disbursed</string>
+    <string name="online_received">UPI Received</string>
     <string name="choose_output_language_for_audio_confirmations">Choose output language for audio confirmations.</string>
     <string name="city">City</string>
     <string name="clean_slate_flat_design_with_high_contrast_metrics">Clean slate, flat design with high-contrast metrics</string>
@@ -186,8 +186,8 @@
     <string name="offline">Offline</string>
     <string name="offline_mode">Offline Mode</string>
     <string name="offline_mode_active">Offline mode active</string>
-    <string name="online">Online</string>
-    <string name="online_microfinance_companion">Online microfinance companion</string>
+    <string name="online">UPI</string>
+    <string name="online_microfinance_companion">UPI microfinance companion</string>
     <string name="only_main_device_is_authorized_to_update_the_master_database">Only Main Device is authorized to update the Master Database.</string>
     <string name="open_upi_app">Open UPI App</string>
     <string name="optional">Optional</string>

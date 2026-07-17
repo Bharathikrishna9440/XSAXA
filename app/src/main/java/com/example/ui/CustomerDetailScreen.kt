@@ -818,7 +818,10 @@ fun CustomerDetailScreen(
         val entry = editingPayment!!
         var amtText by remember(entry.id) { mutableStateOf(entry.amountPaid.toLong().toString()) }
         var wkNumText by remember(entry.id) { mutableStateOf(entry.weekNumber.toString()) }
-        var noteText by remember(entry.id) { mutableStateOf(entry.notes.ifBlank { "Cash" }) }
+        var noteText by remember(entry.id) { 
+            val initialNote = entry.notes.ifBlank { "Cash" }
+            mutableStateOf(if (initialNote.equals("Online", ignoreCase = true)) "UPI" else initialNote)
+        }
         
         val sdfEdit = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
         var dateText by remember(entry.id) { mutableStateOf(sdfEdit.format(Date(entry.paymentDate))) }
@@ -830,24 +833,7 @@ fun CustomerDetailScreen(
             entry.paymentDate
         }
 
-        val showDatePicker = {
-            val calendar = Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
-            android.app.DatePickerDialog(
-            context.findActivity() ?: context,
-                { _, year, month, dayOfMonth ->
-                    val newCalendar = Calendar.getInstance().apply {
-                        timeInMillis = parsedTimestamp
-                        set(Calendar.YEAR, year)
-                        set(Calendar.MONTH, month)
-                        set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                    }
-                    dateText = sdfEdit.format(Date(newCalendar.timeInMillis))
-                },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
-            ).show()
-        }
+        var showDatePickerState by remember { mutableStateOf(false) }
 
         val showTimePicker = {
             val calendar = Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
@@ -939,10 +925,10 @@ fun CustomerDetailScreen(
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showDatePicker() },
+                            .clickable { showDatePickerState = true },
                         trailingIcon = {
                             Row {
-                                IconButton(onClick = { showDatePicker() }) {
+                                IconButton(onClick = { showDatePickerState = true }) {
                                     Icon(Icons.Default.DateRange, contentDescription = "Pick Date", tint = Color.Black)
                                 }
                                 IconButton(onClick = { showTimePicker() }) {
@@ -951,6 +937,17 @@ fun CustomerDetailScreen(
                             }
                         }
                     )
+
+                    if (showDatePickerState) {
+                        com.example.ui.components.AdvancedDatePickerDialog(
+                            initialTimeMs = parsedTimestamp,
+                            onDismissRequest = { showDatePickerState = false },
+                            onDateSelected = { selectedTimeMs ->
+                                dateText = sdfEdit.format(Date(selectedTimeMs))
+                                showDatePickerState = false
+                            }
+                        )
+                    }
 
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -974,7 +971,7 @@ fun CustomerDetailScreen(
                                     shape = RoundedCornerShape(8.dp)
                                 )
                                 .clickable {
-                                    noteText = if (noteText == "Cash") "Online" else "Cash"
+                                    noteText = if (noteText == "Cash") "UPI" else "Cash"
                                 },
                             contentAlignment = Alignment.Center
                         ) {

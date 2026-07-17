@@ -65,23 +65,7 @@ fun AddLoanScreen(
         }
     }
 
-    val showDatePicker = {
-        android.app.DatePickerDialog(
-            context.findActivity() ?: context,
-            { _, year, month, dayOfMonth ->
-                val calendar = Calendar.getInstance().apply {
-                    timeInMillis = uiState.loanTimestamp
-                    set(Calendar.YEAR, year)
-                    set(Calendar.MONTH, month)
-                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                }
-                viewModel.updateAddLoanState { it.copy(loanTimestamp = calendar.timeInMillis) }
-            },
-            Calendar.getInstance().apply { timeInMillis = uiState.loanTimestamp }.get(Calendar.YEAR),
-            Calendar.getInstance().apply { timeInMillis = uiState.loanTimestamp }.get(Calendar.MONTH),
-            Calendar.getInstance().apply { timeInMillis = uiState.loanTimestamp }.get(Calendar.DAY_OF_MONTH)
-        ).show()
-    }
+    var showDatePickerState by remember { mutableStateOf(false) }
 
     val showTimePicker = {
         android.app.TimePickerDialog(
@@ -467,7 +451,7 @@ fun AddLoanScreen(
                         .weight(1f)
                         .background(ColorSlateDark.copy(alpha = 0.05f), RoundedCornerShape(8.dp))
                         .border(1.dp, ColorSlateDark.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                        .clickable { showDatePicker() }
+                        .clickable { showDatePickerState = true }
                         .padding(12.dp)
                 ) {
                     Column {
@@ -480,6 +464,17 @@ fun AddLoanScreen(
                             color = ColorSlateDark
                         )
                     }
+                }
+
+                if (showDatePickerState) {
+                    com.example.ui.components.AdvancedDatePickerDialog(
+                        initialTimeMs = uiState.loanTimestamp,
+                        onDismissRequest = { showDatePickerState = false },
+                        onDateSelected = { selectedTimeMs ->
+                            viewModel.updateAddLoanState { it.copy(loanTimestamp = selectedTimeMs) }
+                            showDatePickerState = false
+                        }
+                    )
                 }
 
                 // Time Box

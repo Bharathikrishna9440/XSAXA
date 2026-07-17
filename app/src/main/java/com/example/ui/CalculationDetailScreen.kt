@@ -437,7 +437,7 @@ fun CollectionDetailLayout(
             }
         }
         val subSum = if (mode == "ONLINE") onlineCollectionSum else cashCollectionSum
-        val titleText = if (mode == "ONLINE") translate("Online Collections", language) else translate("Cash Collections", language)
+        val titleText = if (mode == "ONLINE") translate("UPI Collections", language) else translate("Cash Collections", language)
         val gradientColors = if (mode == "ONLINE") listOf(Color(0xFF1E3A8A), Color(0xFF1D4ED8)) else listOf(Color(0xFF065F46), Color(0xFF0F766E))
 
         Column(
@@ -824,7 +824,7 @@ fun CollectionDetailLayout(
                                 horizontalAlignment = Alignment.End
                             ) {
                                 Text(
-                                    text = translate("Online", language),
+                                    text = translate("UPI", language),
                                     color = Color.LightGray.copy(alpha = 0.8f),
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
@@ -1182,7 +1182,7 @@ fun DisbursalDetailLayout(
             }
         }
         val subSum = if (mode == "ONLINE") onlineDisbursalSum else cashDisbursalSum
-        val titleText = if (mode == "ONLINE") translate("Online Disbursals", language) else translate("Cash Disbursals", language)
+        val titleText = if (mode == "ONLINE") translate("UPI Disbursals", language) else translate("Cash Disbursals", language)
         val gradientColors = if (mode == "ONLINE") listOf(Color(0xFF312E81), Color(0xFF4338CA)) else listOf(Color(0xFF831843), Color(0xFF9D174D))
 
         Column(
@@ -1442,7 +1442,7 @@ fun DisbursalDetailLayout(
                                             }.padding(4.dp)
                                         )
                                         Text(
-                                            text = if (mode == "ONLINE") translate("Online Portion", language) else translate("Cash Portion", language),
+                                            text = if (mode == "ONLINE") translate("UPI Portion", language) else translate("Cash Portion", language),
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = labelColor
@@ -1590,7 +1590,7 @@ fun DisbursalDetailLayout(
                             horizontalAlignment = Alignment.End
                         ) {
                             Text(
-                                text = translate("Online", language),
+                                text = translate("UPI", language),
                                 color = Color.LightGray.copy(alpha = 0.8f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,

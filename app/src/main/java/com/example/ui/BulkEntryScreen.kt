@@ -72,24 +72,7 @@ fun BulkEntryScreen(
         System.currentTimeMillis()
     }
 
-    val showDatePicker = {
-        val calendar = java.util.Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
-        android.app.DatePickerDialog(
-            context.findActivity() ?: context,
-            { _, year, month, dayOfMonth ->
-                val newCalendar = java.util.Calendar.getInstance().apply {
-                    timeInMillis = parsedTimestamp
-                    set(java.util.Calendar.YEAR, year)
-                    set(java.util.Calendar.MONTH, month)
-                    set(java.util.Calendar.DAY_OF_MONTH, dayOfMonth)
-                }
-                paymentDateStr = sdf.format(java.util.Date(newCalendar.timeInMillis))
-            },
-            calendar.get(java.util.Calendar.YEAR),
-            calendar.get(java.util.Calendar.MONTH),
-            calendar.get(java.util.Calendar.DAY_OF_MONTH)
-        ).show()
-    }
+    var showDatePickerState by remember { mutableStateOf(false) }
 
     val showTimePicker = {
         val calendar = java.util.Calendar.getInstance().apply { timeInMillis = parsedTimestamp }
@@ -365,7 +348,7 @@ fun BulkEntryScreen(
                                 .weight(1f)
                                 .background(Color(0xFF1E293B).copy(alpha = 0.05f), RoundedCornerShape(8.dp))
                                 .border(1.dp, Color(0xFF1E293B).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                                .clickable { showDatePicker() }
+                                .clickable { showDatePickerState = true }
                                 .padding(10.dp)
                         ) {
                             Column {
@@ -378,6 +361,17 @@ fun BulkEntryScreen(
                                     color = Color(0xFF1E293B)
                                 )
                             }
+                        }
+
+                        if (showDatePickerState) {
+                            com.example.ui.components.AdvancedDatePickerDialog(
+                                initialTimeMs = parsedTimestamp,
+                                onDismissRequest = { showDatePickerState = false },
+                                onDateSelected = { selectedTimeMs ->
+                                    paymentDateStr = sdf.format(java.util.Date(selectedTimeMs))
+                                    showDatePickerState = false
+                                }
+                            )
                         }
 
                         // Time Box

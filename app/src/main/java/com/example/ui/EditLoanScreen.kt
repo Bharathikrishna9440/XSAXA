@@ -78,7 +78,7 @@ fun EditLoanScreen(
             targetLoan.notes.contains("RTGS", ignoreCase = true) ||
             targetLoan.notes.contains("Net", ignoreCase = true) ||
             targetLoan.notes.contains("Transfer", ignoreCase = true)) {
-            "Online"
+            "UPI"
         } else {
             "Cash"
         }
@@ -101,8 +101,11 @@ fun EditLoanScreen(
     val initialOnlinePrincipal = remember(targetLoan.notes) {
         if (targetLoan.notes.startsWith("Multiple - ", ignoreCase = true)) {
             val onlineIndex = targetLoan.notes.indexOf("Online: ₹")
-            if (onlineIndex != -1) {
-                val start = onlineIndex + 9
+            val upiIndex = targetLoan.notes.indexOf("UPI: ₹")
+            val indexToUse = if (onlineIndex != -1) onlineIndex else upiIndex
+            val labelLength = if (onlineIndex != -1) 9 else 6
+            if (indexToUse != -1) {
+                val start = indexToUse + labelLength
                 val end = targetLoan.notes.indexOf(".", start)
                 if (end != -1) {
                     targetLoan.notes.substring(start, end).trim()
@@ -144,24 +147,7 @@ fun EditLoanScreen(
     var startDateVal by rememberSaveable(inputs = arrayOf(targetLoan.id)) { mutableLongStateOf(targetLoan.startDate) }
     val startDateStr = remember(startDateVal) { sdf.format(java.util.Date(startDateVal)) }
 
-    val showDatePicker = {
-        val calendar = Calendar.getInstance().apply { timeInMillis = startDateVal }
-        android.app.DatePickerDialog(
-            context.findActivity() ?: context,
-            { _, year, month, dayOfMonth ->
-                val newCalendar = Calendar.getInstance().apply {
-                    timeInMillis = startDateVal
-                    set(Calendar.YEAR, year)
-                    set(Calendar.MONTH, month)
-                    set(Calendar.DAY_OF_MONTH, dayOfMonth)
-                }
-                startDateVal = newCalendar.timeInMillis
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
-    }
+    var showDatePickerState by remember { mutableStateOf(false) }
 
     val showTimePicker = {
         val calendar = Calendar.getInstance().apply { timeInMillis = startDateVal }
@@ -249,7 +235,7 @@ fun EditLoanScreen(
                                 }
                             }
                         },
-                        label = { Text("Online Principal (₹)") },
+                        label = { Text("UPI Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
                         colors = blackTextFieldColors,
@@ -345,7 +331,8 @@ fun EditLoanScreen(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = tenureWeeks,
@@ -370,45 +357,33 @@ fun EditLoanScreen(
                     modifier = Modifier.weight(1f)
                 )
 
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if (!isMultipleMode) {
-                        if (disbursalMode == "Multiple") disbursalMode = "Cash"
-                        Text(
-                            text = "Disbursal Mode",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                if (!isMultipleMode) {
+                    if (disbursalMode == "Multiple") disbursalMode = "Cash"
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable {
+                                disbursalMode = if (disbursalMode == "Cash") "UPI" else "Cash"
+                            }
+                    ) {
+                        OutlinedTextField(
+                            value = if (disbursalMode == "UPI" || disbursalMode == "Online") "UPI" else "CASH",
+                            onValueChange = {},
+                            readOnly = true,
+                            enabled = false,
+                            label = { Text("Disbursal Mode") },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                disabledTextColor = if (disbursalMode == "Cash") Color(0xFF15803D) else Color(0xFF1D4ED8),
+                                disabledContainerColor = if (disbursalMode == "Cash") Color(0xFFDCFCE7) else Color(0xFFDBEAFE),
+                                disabledBorderColor = if (disbursalMode == "Cash") Color(0xFF16A34A) else Color(0xFF2563EB),
+                                disabledLabelColor = Color.DarkGray
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp)
-                                .background(
-                                    color = if (disbursalMode == "Cash") Color(0xFFDCFCE7) else Color(0xFFDBEAFE),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .border(
-                                    width = 1.5.dp,
-                                    color = if (disbursalMode == "Cash") Color(0xFF16A34A) else Color(0xFF2563EB),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .clickable {
-                                    disbursalMode = if (disbursalMode == "Cash") "Online" else "Cash"
-                                }
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = disbursalMode.uppercase(Locale.getDefault()),
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black,
-                                color = if (disbursalMode == "Cash") Color(0xFF15803D) else Color(0xFF1D4ED8)
-                            )
-                        }
                     }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
 
@@ -434,16 +409,27 @@ fun EditLoanScreen(
                 colors = blackTextFieldColors,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showDatePicker() },
+                    .clickable { showDatePickerState = true },
                 trailingIcon = {
                     Row {
-                        IconButton(onClick = { showDatePicker() }) {
+                        IconButton(onClick = { showDatePickerState = true }) {
                             Icon(Icons.Default.DateRange, contentDescription = "Pick Date", tint = ColorSlateDark)
                         }
                         IconButton(onClick = { showTimePicker() }) {
                             Icon(Icons.Default.AccessTime, contentDescription = "Pick Time", tint = ColorSlateDark)
                         }
                     }
+                }
+            )
+        }
+
+        if (showDatePickerState) {
+            com.example.ui.components.AdvancedDatePickerDialog(
+                initialTimeMs = startDateVal,
+                onDismissRequest = { showDatePickerState = false },
+                onDateSelected = { selectedTimeMs ->
+                    startDateVal = selectedTimeMs
+                    showDatePickerState = false
                 }
             )
         }
@@ -459,7 +445,7 @@ fun EditLoanScreen(
                     .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Multiple Modes (Cash + Online)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
+                Text("Multiple Modes (Cash + UPI)", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
                 Checkbox(
                     checked = isMultipleMode,
                     onCheckedChange = { isMultipleMode = it },
@@ -494,9 +480,9 @@ fun EditLoanScreen(
                     val w = weeklyInstalment.toDoubleOrNull() ?: (if (p != null) ((p + i) / t) else 0.0)
                     
                     val finalNotes = if (isMultipleMode) {
-                        "Multiple - Cash: ₹${cashPrincipalStr.ifBlank { "0" }}, Online: ₹${onlinePrincipalStr.ifBlank { "0" }}. $notes"
-                    } else if (disbursalMode == "Online") {
-                        "Online - $notes"
+                        "Multiple - Cash: ₹${cashPrincipalStr.ifBlank { "0" }}, UPI: ₹${onlinePrincipalStr.ifBlank { "0" }}. $notes"
+                    } else if (disbursalMode == "UPI" || disbursalMode == "Online") {
+                        "UPI - $notes"
                     } else {
                         notes
                     }
