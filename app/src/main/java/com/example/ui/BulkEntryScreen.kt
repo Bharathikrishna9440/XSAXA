@@ -176,7 +176,7 @@ fun BulkEntryScreen(
             rows.forEach { row ->
                 if (row.activeLoan != null) {
                     if (row.todayPayment != null) {
-                        val isCash = row.todayPayment.notes.contains("Cash", ignoreCase = true) || !row.todayPayment.notes.contains("Online", ignoreCase = true)
+                        val isCash = row.todayPayment.notes.contains("Cash", ignoreCase = true) || (!row.todayPayment.notes.contains("Online", ignoreCase = true) && !row.todayPayment.notes.contains("UPI", ignoreCase = true))
                         put(row.customer.id, isCash)
                     } else {
                         put(row.customer.id, true) // true = Cash, false = Bank (Online)
@@ -220,7 +220,7 @@ fun BulkEntryScreen(
                 val originalWeekInt = todayPayment.weekNumber
 
                 val currentIsCash = isCashStates[row.customer.id] ?: true
-                val originalIsCash = todayPayment.notes.contains("Cash", ignoreCase = true) || !todayPayment.notes.contains("Online", ignoreCase = true)
+                val originalIsCash = todayPayment.notes.contains("Cash", ignoreCase = true) || (!todayPayment.notes.contains("Online", ignoreCase = true) && !todayPayment.notes.contains("UPI", ignoreCase = true))
 
                 (currentAmtDouble != originalAmtDouble) ||
                 (currentWeekInt != originalWeekInt) ||
@@ -503,7 +503,7 @@ fun BulkEntryScreen(
                                         ) {
                                             Icon(
                                                 imageVector = if (isCash) Icons.Default.Payments else Icons.Default.AccountBalance,
-                                                contentDescription = if (isCash) "Cash Mode" else "Online Mode",
+                                                contentDescription = if (isCash) "Cash Mode" else "UPI Mode",
                                                 tint = if (isCash) Color(0xFF2E7D32) else Color(0xFF0288D1),
                                                 modifier = Modifier.size(18.dp)
                                             )
@@ -710,7 +710,7 @@ fun BulkEntryScreen(
                                 val amtDouble = amtStr.toDoubleOrNull()
                                 val weekNumber = weekStates[customerId]?.toIntOrNull() ?: item.defaultWeek
                                 val isCashPayment = isCashStates[customerId] ?: true
-                                val paymentTypeNote = if (isCashPayment) "Cash" else "Online"
+                                val paymentTypeNote = if (isCashPayment) "Cash" else "UPI"
 
                                 val existingTodayPayment = item.todayPayment
                                 if (existingTodayPayment != null) {
@@ -718,7 +718,7 @@ fun BulkEntryScreen(
                                     if (amtDouble != null && amtStr.isNotBlank() && amtDouble > 0.0) {
                                         val hasChangeObj = amtDouble != existingTodayPayment.amountPaid || 
                                                            weekNumber != existingTodayPayment.weekNumber || 
-                                                           isCashPayment != (existingTodayPayment.notes.contains("Cash", ignoreCase = true) || !existingTodayPayment.notes.contains("Online", ignoreCase = true))
+                                                           isCashPayment != (existingTodayPayment.notes.contains("Cash", ignoreCase = true) || (!existingTodayPayment.notes.contains("Online", ignoreCase = true) && !existingTodayPayment.notes.contains("UPI", ignoreCase = true)))
                                         
                                         if (hasChangeObj) {
                                             viewModel.editWeeklyPayment(

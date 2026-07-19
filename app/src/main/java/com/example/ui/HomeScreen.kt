@@ -1213,47 +1213,88 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
     val todayCashCollections = remember(allPayments, startOfToday) {
         allPayments
             .filter { it.paymentDate >= startOfToday && it.status.uppercase() != "DELETED" }
-            .filter { p ->
-                val isOnline = !p.upiTxnId.isNullOrEmpty() || 
-                               p.notes.contains("Online", ignoreCase = true) || 
-                               p.notes.contains("UPI", ignoreCase = true) || 
-                               p.notes.contains("GPay", ignoreCase = true) || 
-                               p.notes.contains("PhonePe", ignoreCase = true) || 
-                               p.notes.contains("Paytm", ignoreCase = true) || 
-                               p.notes.contains("Bank", ignoreCase = true) ||
-                               p.notes.contains("Google Pay", ignoreCase = true) ||
-                               p.notes.contains("Phone Pe", ignoreCase = true) ||
-                               p.notes.contains("IMPS", ignoreCase = true) ||
-                               p.notes.contains("NEFT", ignoreCase = true) ||
-                               p.notes.contains("RTGS", ignoreCase = true) ||
-                               p.notes.contains("Net", ignoreCase = true) ||
-                               p.notes.contains("Transfer", ignoreCase = true)
-                !isOnline
+            .sumOf { p ->
+                val notes = p.notes.trim()
+                if (notes.startsWith("Multiple - ", ignoreCase = true)) {
+                    try {
+                        val cashMarker = "Cash: ₹"
+                        val cashStart = notes.indexOf(cashMarker)
+                        if (cashStart != -1) {
+                            val endOfCash = notes.indexOf(",", cashStart)
+                            val cashStr = if (endOfCash != -1) {
+                                notes.substring(cashStart + cashMarker.length, endOfCash).trim()
+                            } else {
+                                "0"
+                            }
+                            cashStr.toDoubleOrNull() ?: 0.0
+                        } else {
+                            p.amountPaid
+                        }
+                    } catch (e: Exception) {
+                        p.amountPaid
+                    }
+                } else {
+                    val isOnline = !p.upiTxnId.isNullOrEmpty() || 
+                                   p.notes.contains("Online", ignoreCase = true) || 
+                                   p.notes.contains("UPI", ignoreCase = true) || 
+                                   p.notes.contains("GPay", ignoreCase = true) || 
+                                   p.notes.contains("PhonePe", ignoreCase = true) || 
+                                   p.notes.contains("Paytm", ignoreCase = true) || 
+                                   p.notes.contains("Bank", ignoreCase = true) ||
+                                   p.notes.contains("Google Pay", ignoreCase = true) ||
+                                   p.notes.contains("Phone Pe", ignoreCase = true) ||
+                                   p.notes.contains("IMPS", ignoreCase = true) ||
+                                   p.notes.contains("NEFT", ignoreCase = true) ||
+                                   p.notes.contains("RTGS", ignoreCase = true) ||
+                                   p.notes.contains("Net", ignoreCase = true) ||
+                                   p.notes.contains("Transfer", ignoreCase = true)
+                    if (isOnline) 0.0 else p.amountPaid
+                }
             }
-            .sumOf { it.amountPaid }
     }
 
     // Today's cash disbursals (loan cycles created today, cash given out is principal minus deduction)
     val todayCashDisbursals = remember(allLoanCycles, startOfToday) {
         allLoanCycles
             .filter { it.startDate >= startOfToday && it.status.uppercase() != "DELETED" }
-            .filter { l ->
-                val isOnline = l.notes.contains("Online", ignoreCase = true) || 
-                               l.notes.contains("UPI", ignoreCase = true) || 
-                               l.notes.contains("GPay", ignoreCase = true) || 
-                               l.notes.contains("PhonePe", ignoreCase = true) || 
-                               l.notes.contains("Paytm", ignoreCase = true) || 
-                               l.notes.contains("Bank", ignoreCase = true) ||
-                               l.notes.contains("Google Pay", ignoreCase = true) ||
-                               l.notes.contains("Phone Pe", ignoreCase = true) ||
-                               l.notes.contains("IMPS", ignoreCase = true) ||
-                               l.notes.contains("NEFT", ignoreCase = true) ||
-                               l.notes.contains("RTGS", ignoreCase = true) ||
-                               l.notes.contains("Net", ignoreCase = true) ||
-                               l.notes.contains("Transfer", ignoreCase = true)
-                !isOnline
+            .sumOf { l ->
+                val notes = l.notes.trim()
+                val totalDisbursed = l.loanAmount - l.deduction
+                if (notes.startsWith("Multiple - ", ignoreCase = true)) {
+                    try {
+                        val cashMarker = "Cash: ₹"
+                        val cashStart = notes.indexOf(cashMarker)
+                        if (cashStart != -1) {
+                            val endOfCash = notes.indexOf(",", cashStart)
+                            val cashStr = if (endOfCash != -1) {
+                                notes.substring(cashStart + cashMarker.length, endOfCash).trim()
+                            } else {
+                                "0"
+                            }
+                            cashStr.toDoubleOrNull() ?: 0.0
+                        } else {
+                            totalDisbursed
+                        }
+                    } catch (e: Exception) {
+                        totalDisbursed
+                    }
+                } else {
+                    val isOnline = l.notes.contains("Online", ignoreCase = true) || 
+                                   l.notes.contains("UPI", ignoreCase = true) || 
+                                   l.notes.contains("GPay", ignoreCase = true) || 
+                                   l.notes.contains("PhonePe", ignoreCase = true) || 
+                                   l.notes.contains("Paytm", ignoreCase = true) || 
+                                   l.notes.contains("Bank", ignoreCase = true) ||
+                                   l.notes.contains("Google Pay", ignoreCase = true) ||
+                                   l.notes.contains("Phone Pe", ignoreCase = true) ||
+                                   l.notes.contains("IMPS", ignoreCase = true) ||
+                                   l.notes.contains("NEFT", ignoreCase = true) ||
+                                   l.notes.contains("RTGS", ignoreCase = true) ||
+                                   l.notes.contains("Net", ignoreCase = true) ||
+                                   l.notes.contains("Transfer", ignoreCase = true)
+                    if (isOnline) 0.0 else totalDisbursed
+                }
             }
-            .sumOf { it.loanAmount - it.deduction }
     }
 
     // Calculated System Cash in Hand

@@ -179,7 +179,7 @@ object StatementGenerator {
                            p.notes.contains("UPI", ignoreCase = true) || 
                            p.notes.contains("GPay", ignoreCase = true) || 
                            p.notes.contains("Bank", ignoreCase = true)
-            val pModeStr = if (isOnline) "Online" else "Cash"
+            val pModeStr = if (isOnline) "UPI" else "Cash"
             canvas.drawText((index + 1).toString(), 60f, currentY, rowPaint)
             canvas.drawText(pDateStr, 120f, currentY, rowPaint)
             canvas.drawText("₹${p.amountPaid.toLong()}", 400f, currentY, boldRowPaint)

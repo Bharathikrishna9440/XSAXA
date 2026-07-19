@@ -575,22 +575,22 @@ fun CollectionDetailLayout(
                         val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
                         val modeText = when {
                             isMultiple -> "MULTIPLE"
-                            isOnline -> "ONLINE"
+                            isOnline -> "UPI"
                             else -> "CASH"
                         }
                         val badgeBg = when (modeText) {
                             "MULTIPLE" -> Color(0xFFF3E8FF)
-                            "ONLINE" -> Color(0xFFDBEAFE)
+                            "UPI" -> Color(0xFFDBEAFE)
                             else -> Color(0xFFDCFCE7)
                         }
                         val badgeContentColor = when (modeText) {
                             "MULTIPLE" -> Color(0xFF5B21B6)
-                            "ONLINE" -> Color(0xFF1E3A8A)
+                            "UPI" -> Color(0xFF1E3A8A)
                             else -> Color(0xFF14532D)
                         }
                         val badgeIcon = when (modeText) {
                             "MULTIPLE" -> Icons.Filled.Payments
-                            "ONLINE" -> Icons.Filled.AccountBalance
+                            "UPI" -> Icons.Filled.AccountBalance
                             else -> Icons.Filled.MonetizationOn
                         }
 
@@ -884,22 +884,22 @@ fun CollectionDetailLayout(
                         val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
                         val modeText = when {
                             isMultiple -> "MULTIPLE"
-                            isOnline -> "ONLINE"
+                            isOnline -> "UPI"
                             else -> "CASH"
                         }
                         val badgeBg = when (modeText) {
                             "MULTIPLE" -> Color(0xFFF3E8FF)
-                            "ONLINE" -> Color(0xFFDBEAFE)
+                            "UPI" -> Color(0xFFDBEAFE)
                             else -> Color(0xFFDCFCE7)
                         }
                         val badgeContentColor = when (modeText) {
                             "MULTIPLE" -> Color(0xFF5B21B6)
-                            "ONLINE" -> Color(0xFF1E3A8A)
+                            "UPI" -> Color(0xFF1E3A8A)
                             else -> Color(0xFF14532D)
                         }
                         val badgeIcon = when (modeText) {
                             "MULTIPLE" -> Icons.Filled.Payments
-                            "ONLINE" -> Icons.Filled.AccountBalance
+                            "UPI" -> Icons.Filled.AccountBalance
                             else -> Icons.Filled.MonetizationOn
                         }
 
@@ -1057,9 +1057,15 @@ fun DisbursalDetailLayout(
             try {
                 val cashMarker = "Cash: ₹"
                 val onlineMarker = "Online: ₹"
+                val upiMarker = "UPI: ₹"
                 val cashStart = notes.indexOf(cashMarker)
                 val onlineStart = notes.indexOf(onlineMarker)
-                if (cashStart != -1 && onlineStart != -1) {
+                val upiStart = notes.indexOf(upiMarker)
+                
+                val oStart = if (onlineStart != -1) onlineStart else upiStart
+                val oMarker = if (onlineStart != -1) onlineMarker else upiMarker
+                
+                if (cashStart != -1 && oStart != -1) {
                     val endOfCash = notes.indexOf(",", cashStart)
                     val cashStr = if (endOfCash != -1) {
                         notes.substring(cashStart + cashMarker.length, endOfCash).trim()
@@ -1067,9 +1073,9 @@ fun DisbursalDetailLayout(
                         "0"
                     }
                     
-                    val endOfOnline = notes.indexOf(".", onlineStart)
+                    val endOfOnline = notes.indexOf(".", oStart)
                     val onlineStr = if (endOfOnline != -1) {
-                        notes.substring(onlineStart + onlineMarker.length, endOfOnline).trim()
+                        notes.substring(oStart + oMarker.length, endOfOnline).trim()
                     } else {
                         "0"
                     }
@@ -1113,9 +1119,15 @@ fun DisbursalDetailLayout(
                 try {
                     val cashMarker = "Cash: ₹"
                     val onlineMarker = "Online: ₹"
+                    val upiMarker = "UPI: ₹"
                     val cashStart = notes.indexOf(cashMarker)
                     val onlineStart = notes.indexOf(onlineMarker)
-                    if (cashStart != -1 && onlineStart != -1) {
+                    val upiStart = notes.indexOf(upiMarker)
+                    
+                    val oStart = if (onlineStart != -1) onlineStart else upiStart
+                    val oMarker = if (onlineStart != -1) onlineMarker else upiMarker
+                    
+                    if (cashStart != -1 && oStart != -1) {
                         val endOfCash = notes.indexOf(",", cashStart)
                         val cashStr = if (endOfCash != -1) {
                             notes.substring(cashStart + cashMarker.length, endOfCash).trim()
@@ -1123,9 +1135,9 @@ fun DisbursalDetailLayout(
                             "0"
                         }
                         
-                        val endOfOnline = notes.indexOf(".", onlineStart)
+                        val endOfOnline = notes.indexOf(".", oStart)
                         val onlineStr = if (endOfOnline != -1) {
-                            notes.substring(onlineStart + onlineMarker.length, endOfOnline).trim()
+                            notes.substring(oStart + oMarker.length, endOfOnline).trim()
                         } else {
                             "0"
                         }
@@ -1316,26 +1328,26 @@ fun DisbursalDetailLayout(
                 ) {
                     items(subPageItems) { (item, amt) ->
                         val cleanNotes = item.notes.trim()
-                        val isOnline = cleanNotes.startsWith("Online", ignoreCase = true)
+                        val isOnline = cleanNotes.startsWith("Online", ignoreCase = true) || cleanNotes.startsWith("UPI", ignoreCase = true)
                         val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
                         val modeText = when {
                             isMultiple -> "MULTIPLE"
-                            isOnline -> "ONLINE"
+                            isOnline -> "UPI"
                             else -> "CASH"
                         }
                         val badgeBg = when (modeText) {
                             "MULTIPLE" -> Color(0xFFF3E8FF)
-                            "ONLINE" -> Color(0xFFDBEAFE)
+                            "UPI" -> Color(0xFFDBEAFE)
                             else -> Color(0xFFDCFCE7)
                         }
                         val badgeContentColor = when (modeText) {
                             "MULTIPLE" -> Color(0xFF5B21B6)
-                            "ONLINE" -> Color(0xFF1E3A8A)
+                            "UPI" -> Color(0xFF1E3A8A)
                             else -> Color(0xFF14532D)
                         }
                         val badgeIcon = when (modeText) {
                             "MULTIPLE" -> Icons.Filled.Payments
-                            "ONLINE" -> Icons.Filled.AccountBalance
+                            "UPI" -> Icons.Filled.AccountBalance
                             else -> Icons.Filled.MonetizationOn
                         }
                         val labelColor = if (appColors.isDark) Color(0xFF94A3B8) else Color(0xFF475569)
@@ -1650,26 +1662,26 @@ fun DisbursalDetailLayout(
             ) {
                 items(items) { item ->
                     val cleanNotes = item.notes.trim()
-                    val isOnline = cleanNotes.startsWith("Online", ignoreCase = true)
+                    val isOnline = cleanNotes.startsWith("Online", ignoreCase = true) || cleanNotes.startsWith("UPI", ignoreCase = true)
                     val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
                     val modeText = when {
                         isMultiple -> "MULTIPLE"
-                        isOnline -> "ONLINE"
+                        isOnline -> "UPI"
                         else -> "CASH"
                     }
                     val badgeBg = when (modeText) {
                         "MULTIPLE" -> Color(0xFFF3E8FF)
-                        "ONLINE" -> Color(0xFFDBEAFE)
+                        "UPI" -> Color(0xFFDBEAFE)
                         else -> Color(0xFFDCFCE7)
                     }
                     val badgeContentColor = when (modeText) {
                         "MULTIPLE" -> Color(0xFF5B21B6)
-                        "ONLINE" -> Color(0xFF1E3A8A)
+                        "UPI" -> Color(0xFF1E3A8A)
                         else -> Color(0xFF14532D)
                     }
                     val badgeIcon = when (modeText) {
                         "MULTIPLE" -> Icons.Filled.Payments
-                        "ONLINE" -> Icons.Filled.AccountBalance
+                        "UPI" -> Icons.Filled.AccountBalance
                         else -> Icons.Filled.MonetizationOn
                     }
                     val labelColor = if (appColors.isDark) Color(0xFF94A3B8) else Color(0xFF475569)
