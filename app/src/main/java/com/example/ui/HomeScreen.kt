@@ -1480,7 +1480,12 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
 
                 // Row 2: Today's Cash Collections
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.navigateTo(Screen.CalculationDetail("COLLECTION", "Home", "CASH"))
+                        }
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1500,7 +1505,12 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
 
                 // Row 3: Today's Cash Disbursals
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.navigateTo(Screen.CalculationDetail("DISBURSAL", "Home", "CASH"))
+                        }
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {

@@ -38,7 +38,7 @@ sealed class Screen {
     data class BulkEntry(val day: String) : Screen()
     data class Search(val day: String) : Screen()
     object AiChat : Screen()
-    data class CalculationDetail(val type: String, val day: String) : Screen()
+    data class CalculationDetail(val type: String, val day: String, val initialMode: String? = null) : Screen()
 }
 
 data class ChatMessage(

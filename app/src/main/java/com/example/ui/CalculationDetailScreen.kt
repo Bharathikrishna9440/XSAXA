@@ -90,7 +90,8 @@ data class ProfitDetailItem(
 fun CalculationDetailScreen(
     type: String, // "COLLECTION", "DISBURSAL", "PROFIT"
     day: String,  // "Home", "Monday", "Tuesday", etc.
-    viewModel: FinanceViewModel
+    viewModel: FinanceViewModel,
+    initialMode: String? = null
 ) {
     val appColors = LocalAppThemeColors.current
     val language by viewModel.language.collectAsStateWithLifecycle()
@@ -203,7 +204,8 @@ fun CalculationDetailScreen(
                     padding = innerPadding,
                     appColors = appColors,
                     language = language,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    initialMode = initialMode
                 )
             }
             "DISBURSAL" -> {
@@ -238,7 +240,8 @@ fun CalculationDetailScreen(
                     padding = innerPadding,
                     appColors = appColors,
                     language = language,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    initialMode = initialMode
                 )
             }
             "DEDUCTIONS" -> {
@@ -322,12 +325,13 @@ fun CollectionDetailLayout(
     padding: PaddingValues,
     appColors: AppThemeColors,
     language: String,
-    viewModel: FinanceViewModel
+    viewModel: FinanceViewModel,
+    initialMode: String? = null
 ) {
     var showEditDialog by remember { mutableStateOf<PaymentDetailItem?>(null) }
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    var selectedMode by remember { mutableStateOf<String?>(null) }
+    var selectedMode by remember { mutableStateOf<String?>(initialMode) }
     var subSearchQuery by remember { mutableStateOf("") }
 
     BackHandler(enabled = selectedMode != null) {
@@ -335,29 +339,68 @@ fun CollectionDetailLayout(
         subSearchQuery = ""
     }
 
-    val cashCollectionSum = remember(items) {
-        items.filter { item ->
-            val cleanNotes = item.notes.trim()
-            val isOnline = !item.upiTxnId.isNullOrBlank() || 
-                           cleanNotes.contains("Online", ignoreCase = true) || 
-                           cleanNotes.contains("UPI", ignoreCase = true) || 
-                           cleanNotes.contains("GPay", ignoreCase = true) || 
-                           cleanNotes.contains("PhonePe", ignoreCase = true) || 
-                           cleanNotes.contains("Paytm", ignoreCase = true) || 
-                           cleanNotes.contains("Bank", ignoreCase = true) ||
-                           cleanNotes.contains("Google Pay", ignoreCase = true) ||
-                           cleanNotes.contains("Phone Pe", ignoreCase = true) ||
-                           cleanNotes.contains("IMPS", ignoreCase = true) ||
-                           cleanNotes.contains("NEFT", ignoreCase = true) ||
-                           cleanNotes.contains("RTGS", ignoreCase = true) ||
-                           cleanNotes.contains("Net", ignoreCase = true) ||
-                           cleanNotes.contains("Transfer", ignoreCase = true)
-            !isOnline
-        }.sumOf { it.amount }
+    fun getCollectionSplit(item: PaymentDetailItem): Pair<Double, Double> {
+        val notes = item.notes.trim()
+        if (notes.startsWith("Multiple - ", ignoreCase = true)) {
+            try {
+                val cashMarker = "Cash: ₹"
+                val onlineMarker = "Online: ₹"
+                val upiMarker = "UPI: ₹"
+                val cashStart = notes.indexOf(cashMarker)
+                val onlineStart = notes.indexOf(onlineMarker)
+                val upiStart = notes.indexOf(upiMarker)
+                
+                val oStart = if (onlineStart != -1) onlineStart else upiStart
+                val oMarker = if (onlineStart != -1) onlineMarker else upiMarker
+                
+                if (cashStart != -1) {
+                    val cashVal = parseAmountFromString(notes.substring(cashStart + cashMarker.length))
+                    val onlineVal = if (oStart != -1) {
+                        parseAmountFromString(notes.substring(oStart + oMarker.length))
+                    } else {
+                        0.0
+                    }
+                    return Pair(cashVal, onlineVal)
+                }
+            } catch (e: Exception) {
+                // fallback
+            }
+        }
+        
+        val isOnline = !item.upiTxnId.isNullOrBlank() || 
+                       notes.contains("Online", ignoreCase = true) || 
+                       notes.contains("UPI", ignoreCase = true) || 
+                       notes.contains("GPay", ignoreCase = true) || 
+                       notes.contains("PhonePe", ignoreCase = true) || 
+                       notes.contains("Paytm", ignoreCase = true) || 
+                       notes.contains("Bank", ignoreCase = true) ||
+                       notes.contains("Google Pay", ignoreCase = true) ||
+                       notes.contains("Phone Pe", ignoreCase = true) ||
+                       notes.contains("IMPS", ignoreCase = true) ||
+                       notes.contains("NEFT", ignoreCase = true) ||
+                       notes.contains("RTGS", ignoreCase = true) ||
+                       notes.contains("Net", ignoreCase = true) ||
+                       notes.contains("Transfer", ignoreCase = true)
+                       
+        return if (isOnline) {
+            Pair(0.0, item.amount)
+        } else {
+            Pair(item.amount, 0.0)
+        }
     }
-    val onlineCollectionSum = remember(items, cashCollectionSum) {
-        items.sumOf { it.amount } - cashCollectionSum
+
+    val collectionSplit = remember(items) {
+        var cashSum = 0.0
+        var onlineSum = 0.0
+        for (item in items) {
+            val (cash, online) = getCollectionSplit(item)
+            cashSum += cash
+            onlineSum += online
+        }
+        Pair(cashSum, onlineSum)
     }
+    val cashCollectionSum = collectionSplit.first
+    val onlineCollectionSum = collectionSplit.second
 
     fun isItemOnline(item: PaymentDetailItem): Boolean {
         val cleanNotes = item.notes.trim()
@@ -427,9 +470,12 @@ fun CollectionDetailLayout(
     if (selectedMode != null) {
         val mode = selectedMode!!
         val subPageItems = remember(items, mode, subSearchQuery) {
-            items.filter { item ->
-                val isOnline = isItemOnline(item)
-                val matchesMode = if (mode == "ONLINE") isOnline else !isOnline
+            items.map { item ->
+                val (cash, online) = getCollectionSplit(item)
+                val targetAmt = if (mode == "ONLINE") online else cash
+                Pair(item, targetAmt)
+            }.filter { (item, amt) ->
+                val matchesMode = amt > 0.0
                 val matchesQuery = subSearchQuery.isBlank() || 
                                    item.customerName.contains(subSearchQuery, ignoreCase = true) || 
                                    item.customerCode.contains(subSearchQuery, ignoreCase = true)
@@ -569,7 +615,7 @@ fun CollectionDetailLayout(
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(subPageItems) { item ->
+                    items(subPageItems) { (item, amt) ->
                         val cleanNotes = item.notes.trim()
                         val isOnline = isItemOnline(item)
                         val isMultiple = cleanNotes.startsWith("Multiple", ignoreCase = true)
@@ -711,7 +757,7 @@ fun CollectionDetailLayout(
                                     }
                                 }
                                 Text(
-                                    text = "₹ ${String.format(Locale.US, "%,.0f", item.amount)}",
+                                    text = "₹ ${String.format(Locale.US, "%,.0f", amt)}",
                                     fontWeight = FontWeight.Black,
                                     fontSize = 17.sp,
                                     color = if (appColors.isDark) Color(0xFF4ADE80) else Color(0xFF15803D)
@@ -1041,9 +1087,10 @@ fun DisbursalDetailLayout(
     padding: PaddingValues,
     appColors: AppThemeColors,
     language: String,
-    viewModel: FinanceViewModel
+    viewModel: FinanceViewModel,
+    initialMode: String? = null
 ) {
-    var selectedMode by remember { mutableStateOf<String?>(null) }
+    var selectedMode by remember { mutableStateOf<String?>(initialMode) }
     var subSearchQuery by remember { mutableStateOf("") }
 
     BackHandler(enabled = selectedMode != null) {
@@ -1065,23 +1112,13 @@ fun DisbursalDetailLayout(
                 val oStart = if (onlineStart != -1) onlineStart else upiStart
                 val oMarker = if (onlineStart != -1) onlineMarker else upiMarker
                 
-                if (cashStart != -1 && oStart != -1) {
-                    val endOfCash = notes.indexOf(",", cashStart)
-                    val cashStr = if (endOfCash != -1) {
-                        notes.substring(cashStart + cashMarker.length, endOfCash).trim()
+                if (cashStart != -1) {
+                    val cashVal = parseAmountFromString(notes.substring(cashStart + cashMarker.length))
+                    val onlineVal = if (oStart != -1) {
+                        parseAmountFromString(notes.substring(oStart + oMarker.length))
                     } else {
-                        "0"
+                        0.0
                     }
-                    
-                    val endOfOnline = notes.indexOf(".", oStart)
-                    val onlineStr = if (endOfOnline != -1) {
-                        notes.substring(oStart + oMarker.length, endOfOnline).trim()
-                    } else {
-                        "0"
-                    }
-                    
-                    val cashVal = cashStr.toDoubleOrNull() ?: 0.0
-                    val onlineVal = onlineStr.toDoubleOrNull() ?: 0.0
                     return Pair(cashVal, onlineVal)
                 }
             } catch (e: Exception) {
@@ -1127,23 +1164,13 @@ fun DisbursalDetailLayout(
                     val oStart = if (onlineStart != -1) onlineStart else upiStart
                     val oMarker = if (onlineStart != -1) onlineMarker else upiMarker
                     
-                    if (cashStart != -1 && oStart != -1) {
-                        val endOfCash = notes.indexOf(",", cashStart)
-                        val cashStr = if (endOfCash != -1) {
-                            notes.substring(cashStart + cashMarker.length, endOfCash).trim()
+                    if (cashStart != -1) {
+                        val cashVal = parseAmountFromString(notes.substring(cashStart + cashMarker.length))
+                        val onlineVal = if (oStart != -1) {
+                            parseAmountFromString(notes.substring(oStart + oMarker.length))
                         } else {
-                            "0"
+                            0.0
                         }
-                        
-                        val endOfOnline = notes.indexOf(".", oStart)
-                        val onlineStr = if (endOfOnline != -1) {
-                            notes.substring(oStart + oMarker.length, endOfOnline).trim()
-                        } else {
-                            "0"
-                        }
-                        
-                        val cashVal = cashStr.toDoubleOrNull() ?: 0.0
-                        val onlineVal = onlineStr.toDoubleOrNull() ?: 0.0
                         cashSum += cashVal
                         onlineSum += onlineVal
                     } else {
@@ -2038,3 +2065,19 @@ fun ProfitDetailLayout(
 
 @Composable
 fun RowBorderStroke(color: Color) = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+
+fun parseAmountFromString(str: String): Double {
+    val clean = StringBuilder()
+    var dotCount = 0
+    for (char in str) {
+        if (char.isDigit()) {
+            clean.append(char)
+        } else if (char == '.' && dotCount == 0) {
+            clean.append(char)
+            dotCount++
+        } else {
+            if (clean.isNotEmpty()) break
+        }
+    }
+    return clean.toString().toDoubleOrNull() ?: 0.0
+}

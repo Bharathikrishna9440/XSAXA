@@ -996,7 +996,8 @@ fun WeeklyFinanceApp(
                                     CalculationDetailScreen(
                                         type = target.type,
                                         day = target.day,
-                                        viewModel = viewModel
+                                        viewModel = viewModel,
+                                        initialMode = target.initialMode
                                     )
                                 }
 
