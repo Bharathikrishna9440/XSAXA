@@ -221,8 +221,11 @@ fun PaymentCalendarMatrix(payments: List<WeeklyPayment>, loanCycles: List<LoanCy
                 val isCovered = loanCycles.any { loan ->
                     isWeekCoveredByLoan(startMs, endMs, loan, payments)
                 }
+                val isDisbursedThisWeek = loanCycles.any { loan ->
+                    loan.startDate in startMs..endMs
+                }
                 
-                if (isCovered) {
+                if (isCovered && !isDisbursedThisWeek) {
                     totalWeeksCount++
                     val isPaid = payments.any { p -> p.status == "ACTIVE" && p.amountPaid > 0.0 && p.paymentDate in startMs..endMs }
                     if (isPaid) {
