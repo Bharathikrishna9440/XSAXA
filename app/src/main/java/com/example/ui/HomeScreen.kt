@@ -1193,6 +1193,7 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
     val cashBalanceLogs by viewModel.allCashBalanceLogs.collectAsStateWithLifecycle()
     val allPayments by viewModel.allPayments.collectAsStateWithLifecycle()
     val allLoanCycles by viewModel.allLoanCycles.collectAsStateWithLifecycle()
+    val allCustomers by viewModel.allCustomers.collectAsStateWithLifecycle()
 
     val startOfToday = remember {
         Calendar.getInstance().apply {
@@ -1210,9 +1211,17 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
     val yesterdayCashInHand = lastLogBeforeToday?.actualCash ?: 0.0
 
     // Today's collections in Cash
-    val todayCashCollections = remember(allPayments, startOfToday) {
+    val todayCashCollections = remember(allPayments, allLoanCycles, allCustomers, startOfToday) {
+        val activeCustomerIds = allCustomers.map { it.id }.toSet()
+        val loanMap = allLoanCycles.associateBy { it.id }
         allPayments
-            .filter { it.paymentDate >= startOfToday && it.status.uppercase() != "DELETED" }
+            .filter { p ->
+                val loan = loanMap[p.loanCycleId]
+                p.paymentDate >= startOfToday && 
+                p.status.uppercase() != "DELETED" && 
+                loan != null && 
+                loan.customerId in activeCustomerIds
+            }
             .sumOf { p ->
                 val notes = p.notes.trim()
                 if (notes.startsWith("Multiple - ", ignoreCase = true)) {
@@ -1220,13 +1229,7 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
                         val cashMarker = "Cash: ₹"
                         val cashStart = notes.indexOf(cashMarker)
                         if (cashStart != -1) {
-                            val endOfCash = notes.indexOf(",", cashStart)
-                            val cashStr = if (endOfCash != -1) {
-                                notes.substring(cashStart + cashMarker.length, endOfCash).trim()
-                            } else {
-                                "0"
-                            }
-                            cashStr.toDoubleOrNull() ?: 0.0
+                            parseAmountFromString(notes.substring(cashStart + cashMarker.length))
                         } else {
                             p.amountPaid
                         }
@@ -1254,9 +1257,14 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
     }
 
     // Today's cash disbursals (loan cycles created today, cash given out is principal minus deduction)
-    val todayCashDisbursals = remember(allLoanCycles, startOfToday) {
+    val todayCashDisbursals = remember(allLoanCycles, allCustomers, startOfToday) {
+        val activeCustomerIds = allCustomers.map { it.id }.toSet()
         allLoanCycles
-            .filter { it.startDate >= startOfToday && it.status.uppercase() != "DELETED" }
+            .filter { l ->
+                l.startDate >= startOfToday && 
+                l.status.uppercase() != "DELETED" && 
+                l.customerId in activeCustomerIds
+            }
             .sumOf { l ->
                 val notes = l.notes.trim()
                 val totalDisbursed = l.loanAmount - l.deduction
@@ -1265,13 +1273,7 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
                         val cashMarker = "Cash: ₹"
                         val cashStart = notes.indexOf(cashMarker)
                         if (cashStart != -1) {
-                            val endOfCash = notes.indexOf(",", cashStart)
-                            val cashStr = if (endOfCash != -1) {
-                                notes.substring(cashStart + cashMarker.length, endOfCash).trim()
-                            } else {
-                                "0"
-                            }
-                            cashStr.toDoubleOrNull() ?: 0.0
+                            parseAmountFromString(notes.substring(cashStart + cashMarker.length))
                         } else {
                             totalDisbursed
                         }
