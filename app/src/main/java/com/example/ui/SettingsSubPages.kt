@@ -34,6 +34,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.OffsetMapping
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.input.key.*
 import com.example.network.FirebaseUpdateManager
 import com.example.network.UpdateStatus
 import com.example.data.DatabaseProvider
@@ -1556,6 +1564,110 @@ fun GoogleContactsSyncSubPage(
 // 9. TemplatesSubPage
 // ==========================================
 // ==========================================
+// Custom visual transformation and text field for wildcard bubbles
+// ==========================================
+class BubbleVisualTransformation(private val appColors: AppThemeColors) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val builder = AnnotatedString.Builder()
+        builder.append(text.text)
+        
+        val wildcards = listOf("{customer}", "{name}", "{amount}", "{business}", "{upi}", "{upi_link}", "{balance}", "{inst_amt}", "{date}")
+        val isDark = appColors.isDark
+        val bubbleBg = if (isDark) Color(0xFF312E81) else Color(0xFFE0E7FF)
+        val bubbleText = if (isDark) Color(0xFFC7D2FE) else Color(0xFF4F46E5)
+        
+        for (wildcard in wildcards) {
+            var index = text.text.indexOf(wildcard)
+            while (index != -1) {
+                builder.addStyle(
+                    style = SpanStyle(
+                        color = bubbleText,
+                        background = bubbleBg,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    start = index,
+                    end = index + wildcard.length
+                )
+                index = text.text.indexOf(wildcard, index + 1)
+            }
+        }
+        
+        return TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
+    }
+}
+
+@Composable
+fun BubbleTemplatesTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    appColors: AppThemeColors,
+    textColor: Color,
+    cardBorder: Color
+) {
+    var textFieldValueState by remember { mutableStateOf(TextFieldValue(text = value)) }
+
+    LaunchedEffect(value) {
+        if (textFieldValueState.text != value) {
+            textFieldValueState = textFieldValueState.copy(
+                text = value,
+                selection = TextRange(value.length)
+            )
+        }
+    }
+
+    OutlinedTextField(
+        value = textFieldValueState,
+        onValueChange = { newValue ->
+            textFieldValueState = newValue
+            if (newValue.text != value) {
+                onValueChange(newValue.text)
+            }
+        },
+        shape = RoundedCornerShape(8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = textColor,
+            unfocusedTextColor = textColor,
+            focusedLabelColor = textColor,
+            unfocusedLabelColor = textColor,
+            focusedPlaceholderColor = Color.DarkGray,
+            unfocusedPlaceholderColor = Color.DarkGray,
+            focusedBorderColor = appColors.primaryAccent,
+            unfocusedBorderColor = cardBorder
+        ),
+        visualTransformation = remember(appColors) { BubbleVisualTransformation(appColors) },
+        modifier = modifier
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && (event.key == Key.Backspace || event.nativeKeyEvent.keyCode == 67)) {
+                    val selection = textFieldValueState.selection
+                    if (selection.collapsed) {
+                        val cursor = selection.start
+                        val text = textFieldValueState.text
+                        val wildcards = listOf("{customer}", "{name}", "{amount}", "{business}", "{upi}", "{upi_link}", "{balance}", "{inst_amt}", "{date}")
+                        for (wildcard in wildcards) {
+                            var index = text.indexOf(wildcard)
+                            while (index != -1) {
+                                val start = index
+                                val end = index + wildcard.length
+                                if (cursor in (start + 1)..end) {
+                                    val newText = text.substring(0, start) + text.substring(end)
+                                    val newSelection = TextRange(start)
+                                    textFieldValueState = TextFieldValue(text = newText, selection = newSelection)
+                                    onValueChange(newText)
+                                    return@onPreviewKeyEvent true
+                                }
+                                index = text.indexOf(wildcard, index + 1)
+                            }
+                        }
+                    }
+                }
+                false
+            },
+        maxLines = 4
+    )
+}
+
+// ==========================================
 // 9. TemplatesSubPage
 // ==========================================
 @Composable
@@ -1932,88 +2044,52 @@ fun TemplatesSubPage(
                 // New Loan Custom Area
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("1. New Loan Confirmation SMS Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
-                    OutlinedTextField(
+                    BubbleTemplatesTextField(
                         value = smsNewLoanTemplate,
                         onValueChange = { viewModel.setSmsNewLoanTemplate(it) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = textColor,
-                            unfocusedTextColor = textColor,
-                            focusedLabelColor = textColor,
-                            unfocusedLabelColor = textColor,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = appColors.primaryAccent,
-                            unfocusedBorderColor = cardBorder
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 4
+                        appColors = appColors,
+                        textColor = textColor,
+                        cardBorder = cardBorder,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 // Payment Confirmation Custom Area
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("2. Entry Confirmation SMS Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
-                    OutlinedTextField(
+                    BubbleTemplatesTextField(
                         value = smsPaymentTemplate,
                         onValueChange = { viewModel.setSmsPaymentTemplate(it) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = textColor,
-                            unfocusedTextColor = textColor,
-                            focusedLabelColor = textColor,
-                            unfocusedLabelColor = textColor,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = appColors.primaryAccent,
-                            unfocusedBorderColor = cardBorder
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 4
+                        appColors = appColors,
+                        textColor = textColor,
+                        cardBorder = cardBorder,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 // SMS Reminder Custom Area
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("3. Weekly SMS Reminder Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
-                    OutlinedTextField(
+                    BubbleTemplatesTextField(
                         value = smsReminderTemplate,
                         onValueChange = { viewModel.setSmsReminderTemplate(it) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = textColor,
-                            unfocusedTextColor = textColor,
-                            focusedLabelColor = textColor,
-                            unfocusedLabelColor = textColor,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = appColors.primaryAccent,
-                            unfocusedBorderColor = cardBorder
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 4
+                        appColors = appColors,
+                        textColor = textColor,
+                        cardBorder = cardBorder,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
 
                 // Whatsapp Reminder Custom Area
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("4. Weekly WhatsApp Reminder Template", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = textColor)
-                    OutlinedTextField(
+                    BubbleTemplatesTextField(
                         value = whatsappReminderTemplate,
                         onValueChange = { viewModel.setWhatsappReminderTemplate(it) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = textColor,
-                            unfocusedTextColor = textColor,
-                            focusedLabelColor = textColor,
-                            unfocusedLabelColor = textColor,
-                            focusedPlaceholderColor = Color.DarkGray,
-                            unfocusedPlaceholderColor = Color.DarkGray,
-                            focusedBorderColor = appColors.primaryAccent,
-                            unfocusedBorderColor = cardBorder
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 4
+                        appColors = appColors,
+                        textColor = textColor,
+                        cardBorder = cardBorder,
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }

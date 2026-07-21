@@ -99,7 +99,7 @@ fun SettingsScreen(viewModel: FinanceViewModel) {
     val appsScriptCode = ""
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().imePadding().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (activeSubPage != null) {
