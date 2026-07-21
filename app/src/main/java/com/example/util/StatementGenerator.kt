@@ -89,8 +89,8 @@ object StatementGenerator {
             style = Paint.Style.STROKE
             strokeWidth = 2f
         }
-        canvas.drawRoundRect(40f, 210f, 380f, 390f, 16f, 16f, cardPaint)
-        canvas.drawRoundRect(40f, 210f, 380f, 390f, 16f, 16f, borderPaint)
+        canvas.drawRoundRect(40f, 210f, 385f, 410f, 16f, 16f, cardPaint)
+        canvas.drawRoundRect(40f, 210f, 385f, 410f, 16f, 16f, borderPaint)
         
         val textPaint = Paint().apply {
             color = 0xFF1E293B.toInt()
@@ -118,20 +118,20 @@ object StatementGenerator {
         canvas.drawText(displayedCollectionDay, 60f, 345f, labelPaint)
         
         // Loan details card (Right Box)
-        canvas.drawRoundRect(410f, 210f, width.toFloat() - 40f, 410f, 16f, 16f, cardPaint)
-        canvas.drawRoundRect(410f, 210f, width.toFloat() - 40f, 410f, 16f, 16f, borderPaint)
+        canvas.drawRoundRect(415f, 210f, width.toFloat() - 40f, 410f, 16f, 16f, cardPaint)
+        canvas.drawRoundRect(415f, 210f, width.toFloat() - 40f, 410f, 16f, 16f, borderPaint)
         
-        canvas.drawText("Loan Summary", 430f, 245f, textPaint)
+        canvas.drawText("Loan Summary", 435f, 245f, textPaint)
         
         val amtPaid = payments.sumOf { it.amountPaid }.toLong()
         val amtDisbursedVal = (activeLoan.loanAmount - activeLoan.deduction).toLong()
         val totalContractVal = (activeLoan.loanAmount + activeLoan.interestAmount).toLong()
         val outstandingVal = totalContractVal - amtPaid
         
-        canvas.drawText("Amount of Dispersal: ₹$amtDisbursedVal", 430f, 280f, labelPaint)
-        canvas.drawText("Total Contract Value: ₹$totalContractVal", 430f, 310f, labelPaint)
-        canvas.drawText("Amt Paid: ₹$amtPaid", 430f, 340f, labelPaint)
-        canvas.drawText("Outstanding: ₹$outstandingVal", 430f, 370f, labelPaint)
+        canvas.drawText("Amount of Dispersal: ₹$amtDisbursedVal", 435f, 280f, labelPaint)
+        canvas.drawText("Total Contract Value: ₹$totalContractVal", 435f, 310f, labelPaint)
+        canvas.drawText("Amt Paid: ₹$amtPaid", 435f, 340f, labelPaint)
+        canvas.drawText("Outstanding: ₹$outstandingVal", 435f, 370f, labelPaint)
         
         // Payments Table Title (Simplified to "Transaction History")
         canvas.drawText("Transaction History", 40f, 440f, textPaint)
