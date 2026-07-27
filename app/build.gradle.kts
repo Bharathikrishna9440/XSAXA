@@ -145,6 +145,39 @@ if (!envExampleFile.exists()) {
     envExampleFile.writeText("GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE\n")
 }
 
+// Ensure google-services.json exists so Google Services plugin doesn't fail on CI/release builds if missing
+val googleServicesFile = file("${projectDir}/google-services.json")
+if (!googleServicesFile.exists()) {
+    googleServicesFile.writeText("""
+{
+  "project_info": {
+    "project_number": "455008013486",
+    "firebase_url": "https://collection-app-2007-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "collection-app-2007",
+    "storage_bucket": "collection-app-2007.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:455008013486:android:531e28ee052201e9a5f13f",
+        "android_client_info": {
+          "package_name": "com.aistudio.weeklyfinance.khcrwt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAuCr6O-bKtLFqUQag6N_DLTKP16NF5RQ"
+        }
+      ],
+      "services": {}
+    }
+  ],
+  "configuration_version": "1"
+}
+    """.trimIndent())
+}
+
 secrets {
   propertiesFileName = ".env"
   defaultPropertiesFileName = ".env.example"
