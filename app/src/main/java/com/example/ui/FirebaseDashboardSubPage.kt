@@ -5,8 +5,10 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -47,6 +49,26 @@ fun FirebaseDashboardSubPage(
     // Analytics state
     var customEventName by remember { mutableStateOf("") }
     var lastLoggedEvent by remember { mutableStateOf<String?>(null) }
+
+    // RTDB States
+    val firebaseSyncStatus by viewModel.firebaseSyncStatus.collectAsStateWithLifecycle()
+    var isRtdbConnected by remember { mutableStateOf(false) }
+    var rtdbPingResult by remember { mutableStateOf<String?>(null) }
+    var isPingingRtdb by remember { mutableStateOf(false) }
+
+    // Observe RTDB Socket state
+    DisposableEffect(Unit) {
+        val listener = com.example.network.FirebaseConnectionManager.observeRtdbConnection { connected ->
+            isRtdbConnected = connected
+        }
+        onDispose {
+            try {
+                com.google.firebase.database.FirebaseDatabase.getInstance(com.example.util.SecureConfig.firebaseDatabaseUrl)
+                    .getReference(".info/connected")
+                    .removeEventListener(listener)
+            } catch (_: Exception) {}
+        }
+    }
 
     // Load FCM Token
     LaunchedEffect(Unit) {
@@ -113,35 +135,72 @@ fun FirebaseDashboardSubPage(
             }
         }
 
-        // Firebase Auth & RTDB Connection Status Card
+        // Firebase Auth & Realtime Database Connection & Diagnostics Card
         Card(
             colors = CardDefaults.cardColors(containerColor = Color.White),
             shape = RoundedCornerShape(12.dp),
             border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().testTag("rtdb_connection_card")
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "Cloud Ledger Connection Status",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = Color.Black
-                )
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Auth Status:", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        text = "Firebase RTDB Connection & Sync",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color.Black
+                    )
+
+                    // RTDB Socket status badge
+                    Surface(
+                        color = if (isRtdbConnected) Color(0xFFDCFCE7) else Color(0xFFFEE2E2),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.dp, if (isRtdbConnected) Color(0xFF16A34A) else Color(0xFFDC2626))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(
+                                        color = if (isRtdbConnected) Color(0xFF16A34A) else Color(0xFFDC2626),
+                                        shape = CircleShape
+                                    )
+                            )
+                            Text(
+                                text = if (isRtdbConnected) "RTDB Connected" else "RTDB Offline",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isRtdbConnected) Color(0xFF15803D) else Color(0xFFB91C1C)
+                            )
+                        }
+                    }
+                }
+
+                Divider(color = Color(0xFFF1F5F9))
+
+                // Auth Status
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Auth Handshake:", fontSize = 12.sp, color = Color.Gray)
                     val currentUser = FirebaseAuth.getInstance().currentUser
                     val authText = if (currentUser != null) {
-                        "Signed In (${currentUser.email ?: "Anonymous"})"
+                        "Active (${currentUser.uid.take(12)}...)"
                     } else {
-                        "Not Signed In"
+                        "Not Authenticated"
                     }
                     Text(
                         text = authText,
@@ -151,19 +210,240 @@ fun FirebaseDashboardSubPage(
                     )
                 }
 
+                // RTDB Endpoint
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("RTDB Endpoint:", fontSize = 12.sp, color = Color.Gray)
-                    val rtdbUrl = com.example.util.SecureConfig.firebaseDatabaseUrl.take(28) + "..."
+                    val rtdbUrl = com.example.util.SecureConfig.firebaseDatabaseUrl.replace("https://", "").take(32) + "..."
                     Text(
                         text = rtdbUrl,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.DarkGray
                     )
+                }
+
+                // Live Sync Status
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Ledger Sync State:", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        text = firebaseSyncStatus,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = appColors.primaryAccent
+                    )
+                }
+
+                // Ping Diagnostic Output
+                rtdbPingResult?.let { pingMsg ->
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (pingMsg.contains("Live", ignoreCase = true) || pingMsg.contains("OK", ignoreCase = true)) 
+                                Color(0xFFF0FDF4) else Color(0xFFFEF2F2)
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, if (pingMsg.contains("Live", ignoreCase = true) || pingMsg.contains("OK", ignoreCase = true)) Color(0xFF86EFAC) else Color(0xFFFCA5A5)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = pingMsg,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = if (pingMsg.contains("Live", ignoreCase = true) || pingMsg.contains("OK", ignoreCase = true)) Color(0xFF166534) else Color(0xFF991B1B),
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Diagnostic Buttons Grid
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Test Ping Button
+                        Button(
+                            onClick = {
+                                isPingingRtdb = true
+                                rtdbPingResult = "Pinging Firebase RTDB endpoint..."
+                                com.example.network.FirebaseConnectionManager.testRtdbPing { success, result ->
+                                    isPingingRtdb = false
+                                    rtdbPingResult = result
+                                    Toast.makeText(context, if (success) "RTDB Ping Passed!" else "RTDB Ping Failed", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            enabled = !isPingingRtdb,
+                            colors = ButtonDefaults.buttonColors(containerColor = appColors.primaryAccent),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (isPingingRtdb) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.NetworkCheck, contentDescription = "Ping", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Test RTDB Ping", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        // Force Auth Reconnect
+                        OutlinedButton(
+                            onClick = {
+                                com.example.network.FirebaseConnectionManager.initializeSilentCloudConnection(
+                                    onSuccess = {
+                                        Toast.makeText(context, "Silent Cloud Re-auth Success!", Toast.LENGTH_SHORT).show()
+                                        viewModel.startFirebaseSyncListening()
+                                    },
+                                    onFailure = { err ->
+                                        Toast.makeText(context, "Auth Failed: $err", Toast.LENGTH_LONG).show()
+                                    }
+                                )
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Sync, contentDescription = "Reconnect", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Reconnect RTDB", fontSize = 11.sp)
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Push Ledger to RTDB
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.uploadLocalDataToFirebaseCloud()
+                                Toast.makeText(context, "Pushing Ledger to Firebase RTDB...", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = "Upload", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Push to RTDB", fontSize = 11.sp)
+                        }
+
+                        // Pull Ledger from RTDB
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.startFirebaseSyncListening()
+                                Toast.makeText(context, "Connecting to fetch RTDB ledger...", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.CloudDownload, contentDescription = "Download", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Pull from RTDB", fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Day Branch & Customer Sub-Branch Hierarchy Card
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            modifier = Modifier.fillMaxWidth().testTag("day_branches_rtdb_card")
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Day Branches & Customer Sub-Branches",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = Color.Black
+                    )
+                    Surface(
+                        color = Color(0xFFEFF6FF),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFF93C5FD))
+                    ) {
+                        Text(
+                            text = "7 Active Branches",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1D4ED8),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Firebase RTDB stores data hierarchically under Day branches (excluding Friday) and Customer sub-branches with active loan and payment histories:",
+                    fontSize = 12.sp,
+                    color = Color.DarkGray
+                )
+
+                // List of Day Branches
+                val dayBranches = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Saturday", "Sunday mrg", "Sunday eve")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF8FAFC), shape = RoundedCornerShape(8.dp))
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "ROOT: /days & /day_branches",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = appColors.primaryAccent
+                    )
+                    dayBranches.forEach { dayName ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Folder,
+                                contentDescription = "Day Branch",
+                                tint = Color(0xFF0284C7),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "📁 /$dayName → /cust_{id}_{uuid} (Sub-Branch)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF334155)
+                            )
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = {
+                        viewModel.uploadLocalDataToFirebaseCloud()
+                        Toast.makeText(context, "Day Branches & Customer Sub-Branches pushed to RTDB!", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = appColors.primaryAccent),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.CloudUpload, contentDescription = "Sync Day Branches", modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Sync Day & Customer Branches Now", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

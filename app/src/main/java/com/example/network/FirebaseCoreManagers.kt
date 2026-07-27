@@ -125,6 +125,46 @@ object FirebaseConnectionManager {
             Log.e(TAG, "Failed to set disk persistence properties: ${e.message}")
         }
     }
+
+    /**
+     * Tests full Realtime Database read/write latency and endpoint connectivity
+     */
+    fun testRtdbPing(onResult: (Boolean, String) -> Unit) {
+        val startTime = System.currentTimeMillis()
+        val pingRef = database.getReference("rtdb_pings").child(auth.currentUser?.uid ?: "anon_tester")
+        val timestamp = System.currentTimeMillis()
+        
+        pingRef.setValue(mapOf("ping_time" to timestamp, "device" to android.os.Build.MODEL))
+            .addOnSuccessListener {
+                val latency = System.currentTimeMillis() - startTime
+                pingRef.get().addOnSuccessListener { snapshot ->
+                    onResult(true, "RTDB Live! Ping: ${latency}ms | Path: /rtdb_pings | Write/Read Verified")
+                }.addOnFailureListener { e ->
+                    onResult(true, "RTDB Write OK (${latency}ms), Read error: ${e.message}")
+                }
+            }
+            .addOnFailureListener { e ->
+                onResult(false, "RTDB Write Failed: ${e.message ?: "Network timeout or permission denied"}")
+            }
+    }
+
+    /**
+     * Observes real-time connection status with RTDB using .info/connected
+     */
+    fun observeRtdbConnection(onConnectedChanged: (Boolean) -> Unit): com.google.firebase.database.ValueEventListener {
+        val connectedRef = database.getReference(".info/connected")
+        val listener = object : com.google.firebase.database.ValueEventListener {
+            override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                val connected = snapshot.getValue(Boolean::class.java) ?: false
+                onConnectedChanged(connected)
+            }
+            override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                onConnectedChanged(false)
+            }
+        }
+        connectedRef.addValueEventListener(listener)
+        return listener
+    }
 }
 
 // ==========================================

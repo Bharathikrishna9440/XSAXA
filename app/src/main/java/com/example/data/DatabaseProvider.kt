@@ -7,8 +7,12 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
 object DatabaseProvider {
+    @Volatile
+    private var cachedDbPassword: ByteArray? = null
+
     fun getDbPassword(context: Context): ByteArray {
-        return try {
+        cachedDbPassword?.let { return it }
+        val keyBytes = try {
             val masterKey = MasterKey.Builder(context)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                 .build()
@@ -41,6 +45,8 @@ object DatabaseProvider {
             }
             Base64.decode(storedKey, Base64.DEFAULT)
         }
+        cachedDbPassword = keyBytes
+        return keyBytes
     }
 
     fun getDatabase(context: Context): AppDatabase {

@@ -159,6 +159,7 @@ dependencies {
   implementation(libs.firebase.perf)
   implementation(libs.firebase.appcheck)
   implementation("com.google.firebase:firebase-database")
+  implementation("com.google.firebase:firebase-storage")
   implementation("com.google.firebase:firebase-auth")
   implementation("com.google.firebase:firebase-inappmessaging-display")
   implementation("com.google.firebase:firebase-messaging")

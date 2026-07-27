@@ -91,7 +91,7 @@ fun SearchScreen(
                         .statusBarsPadding()
                         .padding(horizontal = 4.dp, vertical = 8.dp)
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .defaultMinSize(minHeight = 56.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Back button

@@ -127,12 +127,17 @@ abstract class AppDatabase : RoomDatabase() {
             isReadOnlyUser: Boolean,
             dbPasswordBytes: ByteArray
         ): AppDatabase {
+            if (isDemoMode) {
+                IN_MEMORY_INSTANCE?.let { return it }
+            } else {
+                INSTANCE?.let { return it }
+            }
             
             val factory = SupportFactory(dbPasswordBytes)
 
             if (isDemoMode) {
                 return IN_MEMORY_INSTANCE ?: synchronized(this) {
-                    Room.inMemoryDatabaseBuilder(
+                    IN_MEMORY_INSTANCE ?: Room.inMemoryDatabaseBuilder(
                         context.applicationContext,
                         AppDatabase::class.java
                     )
@@ -145,28 +150,30 @@ abstract class AppDatabase : RoomDatabase() {
             val dbName = if (isReadOnlyUser) "weekly_finance_user_cache_db" else "weekly_finance_collection_db"
             val obsoleteDbName = if (isReadOnlyUser) "weekly_finance_collection_db" else "weekly_finance_user_cache_db"
             
-            // Delete stale obsolete database to prevent orphaned sensitive data
-            try {
-                context.applicationContext.deleteDatabase(obsoleteDbName)
-            } catch (e: Exception) {
-                // Ignore if it doesn't exist
-            }
-
             return INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    dbName
-                )
-                .openHelperFactory(factory)
-                .addMigrations(
-                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, 
-                    MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, 
-                    MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
-                    MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
-                )
-                .fallbackToDestructiveMigration(true)
-                .build().also { INSTANCE = it }
+                INSTANCE ?: run {
+                    // Delete stale obsolete database to prevent orphaned sensitive data
+                    try {
+                        context.applicationContext.deleteDatabase(obsoleteDbName)
+                    } catch (e: Exception) {
+                        // Ignore if it doesn't exist
+                    }
+
+                    Room.databaseBuilder(
+                        context.applicationContext,
+                        AppDatabase::class.java,
+                        dbName
+                    )
+                    .openHelperFactory(factory)
+                    .addMigrations(
+                        MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, 
+                        MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, 
+                        MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13,
+                        MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16
+                    )
+                    .fallbackToDestructiveMigration(true)
+                    .build().also { INSTANCE = it }
+                }
             }
         }
         

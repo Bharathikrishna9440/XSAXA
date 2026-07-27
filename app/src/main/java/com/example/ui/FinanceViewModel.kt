@@ -149,7 +149,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val _currentUser = MutableStateFlow(if (bypassLogin) com.example.util.SecureConfig.adminUsername.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() } else (prefs.getString("current_user", "") ?: ""))
     val currentUser = _currentUser.asStateFlow()
 
-    private val _currentUserRole = MutableStateFlow(if (bypassLogin) "USER" else (prefs.getString("current_role", "USER") ?: "USER"))
+    private val _currentUserRole = MutableStateFlow(if (bypassLogin) "ADMIN" else (prefs.getString("current_role", "ADMIN") ?: "ADMIN"))
     val currentUserRole = _currentUserRole.asStateFlow()
 
     private val _hasCompletedDeviceSetup = MutableStateFlow(if (bypassLogin) true else prefs.getBoolean("has_completed_device_setup", false))
@@ -1203,6 +1203,16 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     private var isRestoringFromJson = false
 
+    fun determineRoleForEmail(email: String?): String {
+        if (email.isNullOrBlank()) return "USER"
+        val clean = email.trim()
+        return if (clean.equals("muneeswaran45@gmail.com", ignoreCase = true) || clean.equals(com.example.util.SecureConfig.adminUsername, ignoreCase = true)) {
+            "ADMIN"
+        } else {
+            "USER"
+        }
+    }
+
     init {
         // Force the JVM default timezone to Asia/Kolkata so that all formatting and start of day checks are fully synchronized across different physical devices
         java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Kolkata"))
@@ -1211,7 +1221,16 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         
         val savedIsLoggedIn = if (bypassLogin) true else prefs.getBoolean("is_logged_in", false)
         val savedUser = if (bypassLogin) com.example.util.SecureConfig.adminUsername.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() } else (prefs.getString("current_user", "") ?: "")
-        val savedRole = if (bypassLogin) "USER" else (prefs.getString("current_role", "USER") ?: "USER")
+        val savedEmail = prefs.getString("current_email", "") ?: ""
+        val savedRole = if (bypassLogin) {
+            "ADMIN"
+        } else if (savedEmail.isNotBlank()) {
+            determineRoleForEmail(savedEmail)
+        } else if (savedUser.equals(com.example.util.SecureConfig.adminUsername, ignoreCase = true) || savedUser.equals("muneeswaran", ignoreCase = true) || savedUser.equals("Demo", ignoreCase = true)) {
+            "ADMIN"
+        } else {
+            "USER"
+        }
 
         _isLoggedIn.value = savedIsLoggedIn
         _currentUser.value = savedUser
@@ -1293,7 +1312,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
 
     fun markDirty() {
-        if (currentUserRole.value == "ADMIN" && !syncPaused.value) {
+        if (!syncPaused.value) {
             uploadLocalDataToFirebaseCloud()
         }
     }
@@ -1309,18 +1328,35 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun triggerDatabaseRescanAndRepair() {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
-                _isExportImportLoading.value = true
                 // Ensure all entities have correct UUIDs
                 repository.populateMissingUuids()
 
-                // Recalculate all loan cycle payments and statuses
+                // Recalculate all loan cycle payments and statuses with 72h auto-deletion for past records
                 val finalLoans = db.collectionDao().getAllLoanCyclesOnce()
                 val finalPayments = db.collectionDao().getAllPaymentsOnce()
+                val now = System.currentTimeMillis()
+                val seventyTwoHoursMs = 72 * 60 * 60 * 1000L
+
                 for (loan in finalLoans) {
                     if (loan.status.uppercase() == "DELETED") continue
-                    val sumPaid = finalPayments.filter { it.loanCycleId == loan.id && it.status.uppercase() != "DELETED" }.sumOf { it.amountPaid }
+                    val cyclePayments = finalPayments.filter { it.loanCycleId == loan.id && it.status.uppercase() != "DELETED" }
+                    val sumPaid = cyclePayments.sumOf { it.amountPaid }
                     val targetAmount = loan.loanAmount + loan.interestAmount
                     val computedStatus = if (sumPaid >= targetAmount) "PAID" else "ACTIVE"
+
+                    // Auto-delete past records after 72 hours of completion
+                    if (computedStatus == "PAID") {
+                        val lastPaymentTime = cyclePayments.maxByOrNull { it.paymentDate }?.paymentDate ?: loan.lastModified
+                        val completionTime = if (lastPaymentTime > 0) lastPaymentTime else loan.lastModified
+                        if (completionTime > 0 && (now - completionTime) >= seventyTwoHoursMs) {
+                            db.collectionDao().updateLoanCycle(loan.copy(status = "DELETED", lastModified = now))
+                            cyclePayments.forEach { p ->
+                                db.collectionDao().insertPayment(p.copy(status = "DELETED", lastModified = now))
+                            }
+                            continue
+                        }
+                    }
+
                     if (loan.paidAmount != sumPaid || loan.status != computedStatus) {
                         db.collectionDao().updateLoanCycle(
                             loan.copy(paidAmount = sumPaid, status = computedStatus)
@@ -1477,7 +1513,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val rtdb = FirebaseDatabase.getInstance(com.example.util.SecureConfig.firebaseDatabaseUrl)
                 val ref = rtdb.getReference("ledger_csv")
                 val task = ref.setValue(csvString)
-                com.google.android.gms.tasks.Tasks.await(task)
+                com.google.android.gms.tasks.Tasks.await(task, 5, java.util.concurrent.TimeUnit.SECONDS)
+                
+                // Sync Day Branches & Customer Sub-Branches to Firebase RTDB
+                com.example.util.RtdbSyncHelper.syncToFirebaseRtdb(rtdb, customersList, loanCyclesList, paymentsList)
+
                 _firebaseSyncStatus.value = "Synced (${customersList.size} borrowers)"
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -1513,7 +1553,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val rtdb = FirebaseDatabase.getInstance(com.example.util.SecureConfig.firebaseDatabaseUrl)
                 val ref = rtdb.getReference("ledger_csv")
                 val task = ref.setValue(csvString)
-                com.google.android.gms.tasks.Tasks.await(task)
+                com.google.android.gms.tasks.Tasks.await(task, 5, java.util.concurrent.TimeUnit.SECONDS)
+
+                // Sync Day Branches & Customer Sub-Branches to Firebase RTDB
+                com.example.util.RtdbSyncHelper.syncToFirebaseRtdb(rtdb, customersList, loanCyclesList, paymentsList)
+
                 _firebaseSyncStatus.value = "Cloud Overwritten successfully!"
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -1525,49 +1569,187 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun login(username: String, password: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (username.trim().lowercase(Locale.US) == "demo") {
-            prefs.edit().apply {
-                putBoolean("is_logged_in", true)
-                putString("current_user", "Demo")
-                putString("current_role", "USER")
-                putBoolean("is_demo_mode", true)
-                apply()
+    fun loginWithGoogleAccount(idToken: String?, email: String?, displayName: String?, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val userEmail = email?.trim() ?: com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.email?.trim() ?: ""
+        val nameToUse = displayName?.takeIf { it.isNotBlank() }
+            ?: userEmail.substringBefore("@").takeIf { it.isNotBlank() }
+            ?: "Google User"
+
+        if (!idToken.isNullOrBlank()) {
+            try {
+                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                val credential = com.google.firebase.auth.GoogleAuthProvider.getCredential(idToken, null)
+                auth.signInWithCredential(credential)
+                    .addOnCompleteListener { task ->
+                        val fbEmail = task.result?.user?.email ?: userEmail
+                        val finalDisplay = task.result?.user?.displayName?.takeIf { it.isNotBlank() } ?: nameToUse
+                        completeLoginSession(finalDisplay, fbEmail, null, onSuccess)
+                    }
+            } catch (e: Exception) {
+                completeLoginSession(nameToUse, userEmail, null, onSuccess)
             }
-            _isLoggedIn.value = true
-            _isDemoMode.value = true
-            _currentUser.value = "Demo"
-            _currentUserRole.value = "ADMIN"
-            _username.value = "Demo"
-            AppDatabase.resetDatabaseInstances()
-            db = com.example.data.DatabaseProvider.getDatabase(getApplication())
-            onSuccess()
-        } else if (username.trim().lowercase(Locale.US) == com.example.util.SecureConfig.adminUsername && password == com.example.util.SecureConfig.adminPassword) {
-            val capUsername = com.example.util.SecureConfig.adminUsername.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() }
-            prefs.edit().apply {
-                putBoolean("is_logged_in", true)
-                putString("current_user", capUsername)
-                putString("current_role", "ADMIN")
-                putBoolean("is_demo_mode", false)
-                apply()
-            }
-            _isLoggedIn.value = true
-            _isDemoMode.value = false
-            _currentUser.value = capUsername
-            _currentUserRole.value = "ADMIN"
-            _username.value = capUsername
-            AppDatabase.resetDatabaseInstances()
-            db = com.example.data.DatabaseProvider.getDatabase(getApplication())
-            onSuccess()
         } else {
-            onError("Invalid username or password!")
+            completeLoginSession(nameToUse, userEmail, null, onSuccess)
+        }
+    }
+
+    private fun completeLoginSession(displayName: String, email: String? = null, roleOverride: String? = null, onSuccess: () -> Unit) {
+        val cleanEmail = email?.trim() ?: ""
+        val computedRole = roleOverride ?: if (cleanEmail.isNotBlank()) {
+            determineRoleForEmail(cleanEmail)
+        } else if (displayName.equals(com.example.util.SecureConfig.adminUsername, ignoreCase = true) || displayName.equals("muneeswaran", ignoreCase = true) || displayName.equals("Demo", ignoreCase = true)) {
+            "ADMIN"
+        } else {
+            "USER"
+        }
+
+        prefs.edit().apply {
+            putBoolean("is_logged_in", true)
+            putString("current_user", displayName)
+            putString("current_email", cleanEmail)
+            putString("current_role", computedRole)
+            putBoolean("has_completed_device_setup", true)
+            putBoolean("is_demo_mode", false)
+            apply()
+        }
+        _isLoggedIn.value = true
+        _isDemoMode.value = false
+        _currentUser.value = displayName
+        _currentUserRole.value = computedRole
+        _username.value = displayName
+        _hasCompletedDeviceSetup.value = true
+
+        AppDatabase.resetDatabaseInstances()
+        db = com.example.data.DatabaseProvider.getDatabase(getApplication())
+        onSuccess()
+    }
+
+    fun loginWithFirebaseAuth(email: String, password: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isEmpty() || password.isEmpty()) {
+            onError("Please enter both email and password.")
+            return
+        }
+
+        try {
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            auth.signInWithEmailAndPassword(trimmedEmail, password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val fbUser = task.result?.user
+                        val userEmail = fbUser?.email ?: trimmedEmail
+                        val display = fbUser?.displayName?.takeIf { it.isNotBlank() }
+                            ?: userEmail.substringBefore("@")
+                            ?: "Firebase User"
+                        
+                        completeLoginSession(display, userEmail, null, onSuccess)
+                    } else {
+                        val msg = task.exception?.localizedMessage ?: "Firebase authentication failed."
+                        onError(msg)
+                    }
+                }
+        } catch (e: Exception) {
+            onError("Firebase Auth error: ${e.message}")
+        }
+    }
+
+    fun signUpWithFirebaseAuth(email: String, password: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isEmpty() || password.isEmpty()) {
+            onError("Please enter email and password.")
+            return
+        }
+
+        try {
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            auth.createUserWithEmailAndPassword(trimmedEmail, password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val fbUser = task.result?.user
+                        val userEmail = fbUser?.email ?: trimmedEmail
+                        val display = userEmail.substringBefore("@")
+
+                        completeLoginSession(display, userEmail, null, onSuccess)
+                    } else {
+                        val msg = task.exception?.localizedMessage ?: "Firebase account creation failed."
+                        onError(msg)
+                    }
+                }
+        } catch (e: Exception) {
+            onError("Firebase Auth error: ${e.message}")
+        }
+    }
+
+    fun resetPasswordWithFirebaseAuth(email: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val trimmedEmail = email.trim()
+        if (trimmedEmail.isEmpty()) {
+            onError("Please enter your email address.")
+            return
+        }
+
+        try {
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            auth.sendPasswordResetEmail(trimmedEmail)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        onSuccess()
+                    } else {
+                        val msg = task.exception?.localizedMessage ?: "Failed to send reset email."
+                        onError(msg)
+                    }
+                }
+        } catch (e: Exception) {
+            onError("Firebase Auth error: ${e.message}")
+        }
+    }
+
+    fun signInAnonymouslyWithFirebaseAuth(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        try {
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            auth.signInAnonymously()
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val fbUser = task.result?.user
+                        val display = "Guest_${fbUser?.uid?.take(6) ?: "User"}"
+
+                        completeLoginSession(display, "", "USER", onSuccess)
+                    } else {
+                        val msg = task.exception?.localizedMessage ?: "Anonymous authentication failed."
+                        onError(msg)
+                    }
+                }
+        } catch (e: Exception) {
+            onError("Firebase Auth error: ${e.message}")
+        }
+    }
+
+    fun login(username: String, password: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        val cleanUser = username.trim()
+        if (cleanUser.contains("@")) {
+            loginWithFirebaseAuth(cleanUser, password, onSuccess, onError)
+            return
+        }
+        if (cleanUser.lowercase(Locale.US) == "demo") {
+            completeLoginSession("Demo", "demo@app.com", "ADMIN", onSuccess)
+        } else if (cleanUser.lowercase(Locale.US) == com.example.util.SecureConfig.adminUsername && password == com.example.util.SecureConfig.adminPassword) {
+            val capUsername = com.example.util.SecureConfig.adminUsername.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.US) else it.toString() }
+            completeLoginSession(capUsername, "muneeswaran45@gmail.com", "ADMIN", onSuccess)
+        } else {
+            loginWithFirebaseAuth(cleanUser, password, onSuccess, onError)
         }
     }
 
     fun signOut() {
+        try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().signOut()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         prefs.edit().apply {
             putBoolean("is_logged_in", false)
             putString("current_user", "")
+            putString("current_email", "")
+            putString("current_role", "USER")
             putBoolean("has_completed_device_setup", false)
             putBoolean("is_demo_mode", false)
             apply()
@@ -1575,17 +1757,29 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         _isLoggedIn.value = false
         _isDemoMode.value = false
         _currentUser.value = ""
+        _currentUserRole.value = "USER"
         _username.value = ""
         _hasCompletedDeviceSetup.value = false
         AppDatabase.resetDatabaseInstances()
-            db = com.example.data.DatabaseProvider.getDatabase(getApplication())
+        db = com.example.data.DatabaseProvider.getDatabase(getApplication())
     }
 
     fun updateUserRole(role: String) {
-        prefs.edit().putString("current_role", role).apply()
-        _currentUserRole.value = role
+        val currentEmail = prefs.getString("current_email", "") ?: ""
+        val currentUserVal = _currentUser.value
+        val targetRole = if (role == "ADMIN") {
+            if (currentEmail.equals("muneeswaran45@gmail.com", ignoreCase = true) || currentUserVal.equals(com.example.util.SecureConfig.adminUsername, ignoreCase = true) || currentUserVal == "Demo") {
+                "ADMIN"
+            } else {
+                "USER"
+            }
+        } else {
+            "USER"
+        }
+        prefs.edit().putString("current_role", targetRole).apply()
+        _currentUserRole.value = targetRole
         AppDatabase.resetDatabaseInstances()
-            db = com.example.data.DatabaseProvider.getDatabase(getApplication())
+        db = com.example.data.DatabaseProvider.getDatabase(getApplication())
     }
 
     fun completeDeviceSetup(
@@ -1673,15 +1867,17 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
                     if (result) {
                         // 3. Complete Setup
+                        val currentEmail = prefs.getString("current_email", "") ?: ""
+                        val targetRole = determineRoleForEmail(currentEmail)
                         prefs.edit().apply {
-                            putString("current_role", "ADMIN")
+                            putString("current_role", targetRole)
                             putBoolean("has_completed_device_setup", true)
                             apply()
                         }
-                        _currentUserRole.value = "ADMIN"
+                        _currentUserRole.value = targetRole
                         _hasCompletedDeviceSetup.value = true
                         AppDatabase.resetDatabaseInstances()
-            db = com.example.data.DatabaseProvider.getDatabase(getApplication())
+                        db = com.example.data.DatabaseProvider.getDatabase(getApplication())
                         onSuccess()
                     } else {
                         onError("Failed parsing CSV data. Please verify column structure matches instructions exactly.")
@@ -2608,12 +2804,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 cashBalanceLogs = cashBalanceLogsList
             )
 
-            val (success, responseString) = uploadCsvToGoogleScript(csvContent, isManual = false)
+            val (success, responseString) = uploadCsvToFirebaseStorage(csvContent, isManual = false)
             if (success) {
                 prefs.edit().putString("last_auto_backup_date", todayStr).apply()
-                android.util.Log.d("AutoBackup", "Auto backup succeeded: $responseString")
+                android.util.Log.d("AutoBackup", "Auto backup to Firebase Storage succeeded: $responseString")
             } else {
-                android.util.Log.e("AutoBackup", "Auto backup failed: $responseString")
+                android.util.Log.e("AutoBackup", "Auto backup to Firebase Storage failed: $responseString")
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -2623,48 +2819,28 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private suspend fun uploadCsvToGoogleScript(csvContent: String, isManual: Boolean): Pair<Boolean, String> {
-        val client = okhttp3.OkHttpClient.Builder()
-            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .build()
+    private suspend fun uploadCsvToFirebaseStorage(csvContent: String, isManual: Boolean): Pair<Boolean, String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        try {
+            val storage = com.google.firebase.storage.FirebaseStorage.getInstance(com.example.util.SecureConfig.firebaseStorageUrl)
+            val sdf = java.text.SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", java.util.Locale.US)
+            val formattedTime = sdf.format(java.util.Date())
+            val fileName = "finance_all_backup_$formattedTime.csv"
+            val bytes = csvContent.toByteArray(Charsets.UTF_8)
 
-        val sdf = java.text.SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", java.util.Locale.US)
-        val formattedTime = sdf.format(java.util.Date())
-        val fileName = "finance_all_backup_$formattedTime.csv"
+            val datedRef = storage.reference.child("csv_backups/$fileName")
+            com.google.android.gms.tasks.Tasks.await(datedRef.putBytes(bytes))
 
-        val baseUrl = com.example.util.SecureConfig.googleScriptUrl
-        val url = "$baseUrl?filename=${java.net.URLEncoder.encode(fileName, "UTF-8")}&manual=$isManual"
+            val latestRef = storage.reference.child("csv_backups/finance_all_latest_backup.csv")
+            com.google.android.gms.tasks.Tasks.await(latestRef.putBytes(bytes))
 
-        val body = csvContent.toRequestBody("text/csv; charset=utf-8".toMediaTypeOrNull())
-
-        val request = okhttp3.Request.Builder()
-            .url(url)
-            .post(body)
-            .header("Content-Type", "text/csv; charset=utf-8")
-            .build()
-
-        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        val bodyStr = response.body?.string() ?: ""
-                        Pair(true, bodyStr)
-                    } else {
-                        Pair(false, "Server returned code: ${response.code}")
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Pair(false, e.localizedMessage ?: "Unknown network error")
-            }
+            Pair(true, "Firebase Storage bucket file saved: $fileName")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Pair(false, e.localizedMessage ?: "Firebase Storage upload error")
         }
     }
 
-    fun sendManualBackupToGoogleDrive() {
+    fun sendManualBackupToFirebaseStorage() {
         if (offlineModeEnabled.value) {
             _googleDriveBackupStatusMessage.value = "Error: Cannot backup in Offline Mode"
             return
@@ -2686,10 +2862,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     cashBalanceLogs = cashBalanceLogsList
                 )
 
-                _googleDriveBackupStatusMessage.value = "Uploading to Google Drive..."
-                val (success, responseString) = uploadCsvToGoogleScript(csvContent, isManual = true)
+                _googleDriveBackupStatusMessage.value = "Uploading to Firebase Storage..."
+                val (success, responseString) = uploadCsvToFirebaseStorage(csvContent, isManual = true)
                 if (success) {
-                    _googleDriveBackupStatusMessage.value = "Backup uploaded successfully: Drive file saved!"
+                    _googleDriveBackupStatusMessage.value = "Backup uploaded successfully: Firebase Storage file saved!"
                     val todayStr = autoBackupDateFormatter.format(java.util.Date())
                     prefs.edit().putString("last_auto_backup_date", todayStr).apply()
                 } else {
@@ -2702,6 +2878,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 _isGoogleDriveBackupLoading.value = false
             }
         }
+    }
+
+    fun sendManualBackupToGoogleDrive() {
+        sendManualBackupToFirebaseStorage()
     }
 
     fun moveCollectionGroupUp(groupName: String) {
@@ -3004,7 +3184,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         preferredLanguage: String = "English"
     ) {
         viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
             val noPhone = phone.trim().isEmpty()
             val finalSmsWeekly = if (noPhone) false else smsWeeklyReminder
             val finalSmsConf = if (noPhone) false else smsConfirmationOfEntry
@@ -3442,7 +3621,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         preferredLanguage: String = "English"
     ) {
         viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
             val existing = repository.getCustomerById(customerId)
             if (existing != null) {
                 val noPhone = phone.trim().isEmpty()
@@ -3508,7 +3686,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteCustomer(customer: Customer) {
         viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
             try {
                 val loans = allLoanCycles.value.filter { it.customerId == customer.id }
                 val loanIds = loans.map { it.id }.toSet()
@@ -3636,7 +3813,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val appCtx = getApplication<Application>()
         viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
             val loanObj = LoanCycle(
                 customerId = customerId,
                 loanAmount = amount,
@@ -3689,7 +3865,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun markLoanCycleSettled(loanCycleId: Int) {
         viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
             val cycle = repository.getLoanCycleById(loanCycleId)
             if (cycle != null) {
                 val previousJson = loanCycleToJson(cycle)
@@ -3719,7 +3894,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     fun deleteLoanCycle(cycle: LoanCycle) {
         viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
             try {
                 val payments = allPayments.value.filter { it.loanCycleId == cycle.id }
                 val packObj = org.json.JSONObject().apply {
@@ -3769,7 +3943,6 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         deduction: Double = 0.0
     ) {
         viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
             val existing = repository.getLoanCycleById(loanCycleId)
             if (existing != null) {
                 val previousJson = loanCycleToJson(existing)
@@ -3817,8 +3990,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         customSmsPhone: String? = null
     ) {
         val appCtx = getApplication<Application>()
-        viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val actualWeekNum = if (amount <= 0.0 || notes == "UNPAID") 0 else weekNum
             val wp = WeeklyPayment(
                 loanCycleId = loanCycleId,
@@ -3853,9 +4025,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         triggerPaymentEntrySms(appCtx, customer, loan, amount, weekNum, customSmsPhone ?: customer.phone)
                     }
                     createOrUpdateCustomerFiles(customer.id)
-                    markDirty()
                 }
             }
+            markDirty()
         }
     }
 
@@ -3868,8 +4040,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         notes: String
     ) {
         val appCtx = getApplication<Application>()
-        viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val allP = allPayments.value
             val existingP = allP.find { it.id == paymentId }
             val previousJson = if (existingP != null) weeklyPaymentToJson(existingP) else ""
@@ -3907,9 +4078,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                     if (customer.smsConfirmationOfEntry) {
                         triggerPaymentEntrySms(appCtx, customer, loan, amount, weekNum)
                     }
-                    markDirty()
                 }
             }
+            markDirty()
         }
     }
 
@@ -4041,8 +4212,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun deletePayment(paymentId: Int, loanCycleId: Int) {
-        viewModelScope.launch {
-            if (currentUserRole.value == "USER") return@launch
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val allP = allPayments.value
             val existingP = allP.find { it.id == paymentId }
             val previousJson = if (existingP != null) weeklyPaymentToJson(existingP) else ""
@@ -6294,7 +6464,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                         dayFilter = "ALL",
                         cashBalanceLogs = cashBalanceLogsList
                     )
-                    uploadCsvToGoogleScript(csvContent, isManual = true)
+                    uploadCsvToFirebaseStorage(csvContent, isManual = true)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

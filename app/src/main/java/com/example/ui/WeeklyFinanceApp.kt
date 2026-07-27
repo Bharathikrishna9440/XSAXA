@@ -380,10 +380,8 @@ fun WeeklyFinanceApp(
     val currentDensity = LocalDensity.current
     val colors = getThemeColors(selectedTheme)
     
-    // Safely limit combined font scale to a robust maximum (e.g. 1.45f) to ensure 
-    // visual integrity, neatness, and prevent any text overlapping or layout displacement 
-    // across all screens, while still providing highly legible, enlarged text.
-    val coercedFontScale = (currentDensity.fontScale * fontSizeScale).coerceIn(0.70f, 1.45f)
+    // Allow full support for large and extra large font scale up to 1.85x while preserving layout structure
+    val coercedFontScale = (currentDensity.fontScale * fontSizeScale).coerceIn(0.70f, 1.85f)
     
     CompositionLocalProvider(
         LocalAppThemeColors provides colors,
@@ -656,7 +654,9 @@ fun WeeklyFinanceApp(
                                             text = displayTitle,
                                             fontWeight = FontWeight.Bold,
                                             fontFamily = FontFamily.SansSerif,
-                                            color = Color.White
+                                            color = Color.White,
+                                            maxLines = 1,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                         )
                                     }
                                 }

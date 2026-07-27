@@ -44,77 +44,49 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
 
-    // Clean up any obsolete/installed update APK files from local storage on launch
-    try {
-        com.example.network.FirebaseUpdateManager.cleanupObsoleteApks(this)
-    } catch (e: Exception) {
-        android.util.Log.e("MainActivity", "Launch APK cleanup failed: ${e.message}", e)
-    }
-
-    // Initialize our advanced Firebase Managers
-    com.example.network.FirebaseAnalyticsManager.initialize(this)
-    com.example.network.FirebaseRemoteConfigManager.initializeAndFetch()
-    com.google.firebase.appcheck.FirebaseAppCheck.getInstance().installAppCheckProviderFactory(com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory.getInstance())
-    com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
-
-    // ---- FAIL-SAFE PRODUCTION OBSERVABILITY (SILENT BLACK BOX RECORDER) ----
-    val originalHandler = Thread.getDefaultUncaughtExceptionHandler()
-    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-      try {
-        val sharedPrefs = getSharedPreferences("weekly_finance_prefs", android.content.Context.MODE_PRIVATE)
-        val crashDetails = "Crash at ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}\n" +
-            "Message: ${throwable.message}\n" +
-            "Stack Trace:\n${throwable.stackTraceToString()}"
-        sharedPrefs.edit().putString("last_fatal_crash_log", crashDetails).apply()
-      } catch (e: Exception) {
-        e.printStackTrace()
-      }
-
-      originalHandler?.uncaughtException(thread, throwable)
-    }
-
-    val requestPermissionLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-    ) { _ -> 
-        // Foreground Sync Service start removed as the database state is now universally live
-    }
-
-    val permissionsArray = mutableListOf(
-        android.Manifest.permission.CALL_PHONE,
-        android.Manifest.permission.SEND_SMS
-    ).apply {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            add(android.Manifest.permission.POST_NOTIFICATIONS)
+    // Offload background setup tasks to IO thread to keep UI launch instantaneous
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            com.example.network.FirebaseUpdateManager.cleanupObsoleteApks(this@MainActivity)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Launch APK cleanup failed: ${e.message}", e)
         }
-    }.toTypedArray()
 
-    requestPermissionLauncher.launch(permissionsArray)
+        try {
+            com.example.network.FirebaseAnalyticsManager.initialize(this@MainActivity)
+            com.example.network.FirebaseRemoteConfigManager.initializeAndFetch()
+            com.google.firebase.appcheck.FirebaseAppCheck.getInstance().installAppCheckProviderFactory(com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory.getInstance())
+            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Firebase background init failed: ${e.message}", e)
+        }
 
-    // Trigger the silent cloud vault handshake instantly on boot
-    FirebaseConnectionManager.initializeSilentCloudConnection(
-        onSuccess = {
-            Log.i("Main", "Cloud sync engine warmed up and standing by.")
-            FirebaseUpdateManager.checkForCloudUpdates(this@MainActivity, manualCheck = true)
-            
-            // Schedule unique periodic background update check every 1 hour
-            try {
-                val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.service.AppUpdateWorker>(
-                    1, java.util.concurrent.TimeUnit.HOURS
-                ).build()
-                androidx.work.WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
-                    "AppUpdatePeriodicCheck",
-                    androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-                    workRequest
-                )
-                Log.i("Main", "Unique periodic AppUpdateWorker scheduled successfully.")
-            } catch (e: Exception) {
-                Log.e("Main", "Failed to schedule AppUpdateWorker", e)
+        // Trigger the silent cloud vault handshake
+        FirebaseConnectionManager.initializeSilentCloudConnection(
+            onSuccess = {
+                Log.i("Main", "Cloud sync engine warmed up and standing by.")
+                FirebaseUpdateManager.checkForCloudUpdates(this@MainActivity, manualCheck = true)
+                
+                // Schedule unique periodic background update check every 1 hour
+                try {
+                    val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.example.service.AppUpdateWorker>(
+                        1, java.util.concurrent.TimeUnit.HOURS
+                    ).build()
+                    androidx.work.WorkManager.getInstance(this@MainActivity).enqueueUniquePeriodicWork(
+                        "AppUpdatePeriodicCheck",
+                        androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+                        workRequest
+                    )
+                    Log.i("Main", "Unique periodic AppUpdateWorker scheduled successfully.")
+                } catch (e: Exception) {
+                    Log.e("Main", "Failed to schedule AppUpdateWorker", e)
+                }
+            },
+            onFailure = { error ->
+                Log.w("Main", "Running in pure offline-safe isolation mode: $error")
             }
-        },
-        onFailure = { error ->
-            Log.w("Main", "Running in pure offline-safe isolation mode: $error")
-        }
-    )
+        )
+    }
 
     setContent {
       MyApplicationTheme {

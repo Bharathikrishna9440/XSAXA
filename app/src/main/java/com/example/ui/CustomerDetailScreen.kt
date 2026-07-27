@@ -34,6 +34,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -963,7 +964,8 @@ fun CustomerDetailScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
+                                .defaultMinSize(minHeight = 48.dp)
+                                .padding(vertical = 4.dp)
                                 .background(
                                     color = if (noteText == "Cash") Color(0xFF16A34A).copy(alpha = 0.2f) else Color(0xFF2563EB).copy(alpha = 0.2f),
                                     shape = RoundedCornerShape(8.dp)
@@ -1041,7 +1043,16 @@ fun CustomerDetailScreen(
         }
     }
     val activeLoans = liveLoanCycles.filter { it.status == "ACTIVE" }
-    val paidHistory = liveLoanCycles.filter { it.status == "PAID" }
+    val currentTime = System.currentTimeMillis()
+    val seventyTwoHoursMs = 72 * 60 * 60 * 1000L
+    val paidHistory = liveLoanCycles.filter { lc ->
+        if (lc.status != "PAID") return@filter false
+        val cyclePayments = allPayments.filter { it.loanCycleId == lc.id && it.status.uppercase() != "DELETED" }
+        val lastPaymentTime = cyclePayments.maxByOrNull { it.paymentDate }?.paymentDate ?: lc.lastModified
+        val completionTime = if (lastPaymentTime > 0) lastPaymentTime else lc.lastModified
+        val ageMs = currentTime - completionTime
+        ageMs < seventyTwoHoursMs
+    }
 
     val customerLoanCycleIds = remember(loanCycles) { loanCycles.map { it.id }.toSet() }
     val customerPayments = allPayments.filter { it.loanCycleId in customerLoanCycleIds && it.status == "ACTIVE" }
@@ -1702,7 +1713,12 @@ fun CustomerDetailScreen(
                         HistoricLoanCard(
                             historicCycle = historicCycle,
                             payments = historicPayments,
-                            onDelete = { deletingCycleTarget = historicCycle },
+                            onEditLoan = { viewModel.navigateTo(Screen.EditLoan(historicCycle.id)) },
+                            onDeleteLoan = { deletingCycleTarget = historicCycle },
+                            onEditPayment = { payment -> editingPayment = payment },
+                            onDeletePayment = { payment -> deletingPaymentTarget = payment },
+                            onAddPayment = { viewModel.navigateTo(Screen.RecordPayment(historicCycle.id)) },
+                            currentUserRole = currentUserRole,
                             loanLabel = loanLabel
                         )
                     }
@@ -2073,13 +2089,24 @@ fun PaymentHistoryRow(
 }
 
 @Composable
-fun HistoricLoanCard(historicCycle: LoanCycle, payments: List<WeeklyPayment>, onDelete: () -> Unit, loanLabel: String = "Loan") {
+fun HistoricLoanCard(
+    historicCycle: LoanCycle,
+    payments: List<WeeklyPayment>,
+    onEditLoan: () -> Unit,
+    onDeleteLoan: () -> Unit,
+    onEditPayment: (WeeklyPayment) -> Unit,
+    onDeletePayment: (WeeklyPayment) -> Unit,
+    onAddPayment: () -> Unit,
+    currentUserRole: String = "ADMIN",
+    loanLabel: String = "Loan"
+) {
     val totalPaid = historicCycle.paidAmount
     val totalExpected = historicCycle.loanAmount + historicCycle.interestAmount
     
     val lastPayment = payments.maxByOrNull { it.paymentDate }
-    val lastPaymentDate = lastPayment?.paymentDate ?: historicCycle.startDate
-    val diffMs = lastPaymentDate - historicCycle.startDate
+    val lastPaymentDate = lastPayment?.paymentDate ?: historicCycle.lastModified
+    val completionTime = if (lastPaymentDate > 0) lastPaymentDate else historicCycle.lastModified
+    val diffMs = completionTime - historicCycle.startDate
     val diffDays = (diffMs / (1000L * 60 * 60 * 24)).coerceAtLeast(0).toInt()
     val actualWeeks = diffDays / 7.0
     val durationLabel = if (diffDays == 0) {
@@ -2092,77 +2119,195 @@ fun HistoricLoanCard(historicCycle: LoanCycle, payments: List<WeeklyPayment>, on
     val effectiveDays = maxOf(1, diffDays)
     val annualizedRate = flatRate * (365.0 / effectiveDays)
 
+    // Calculate time remaining before 72 hours auto deletion
+    val now = System.currentTimeMillis()
+    val ageMs = now - completionTime
+    val seventyTwoHoursMs = 72 * 60 * 60 * 1000L
+    val remainingMs = (seventyTwoHoursMs - ageMs).coerceAtLeast(0L)
+    val remainingHours = (remainingMs / (1000L * 60 * 60)).toInt()
+    val remainingMins = ((remainingMs % (1000L * 60 * 60)) / (1000L * 60)).toInt()
+    val autoDeleteLabel = if (remainingHours > 0) {
+        "Auto-deletes in ${remainingHours}h ${remainingMins}m"
+    } else {
+        "Auto-deletes in ${remainingMins}m"
+    }
+
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9)),
-        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+        shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
+            // Top Row: Header & Badges
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Settled $loanLabel",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorGainGreen
+                        )
+                        Box(
+                            modifier = Modifier
+                                .background(ColorGainGreenLight, RoundedCornerShape(6.dp))
+                                .border(1.dp, ColorGainGreen.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "PAID",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = ColorGainGreen
+                            )
+                        }
+                    }
                     Text(
-                        text = "Settled $loanLabel",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ColorGainGreen
-                    )
-                    Text(
-                        text = "Date: ${SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(historicCycle.startDate))}",
+                        text = "Disbursed: ${SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(historicCycle.startDate))}",
                         fontSize = 11.sp,
                         color = Color.Gray
                     )
                 }
-                IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete from history", tint = ColorLossRed, modifier = Modifier.size(16.dp))
+                
+                // Top Right: Auto-deletion badge & Delete button
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp))
+                            .border(1.dp, Color(0xFFFECACA), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = autoDeleteLabel,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ColorLossRed
+                        )
+                    }
+                    if (currentUserRole != "USER") {
+                        IconButton(onClick = onDeleteLoan, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete past loan", tint = ColorLossRed, modifier = Modifier.size(16.dp))
+                        }
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Full Loan Details Grid (Disbursed, Principal, Interest, Deduction, Net Disbursed, Weekly Instalment, Tenure)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("Disbursed Amount", fontSize = 11.sp, color = Color.Gray)
+                    Text("Disbursed Amount", fontSize = 10.sp, color = Color.Gray)
                     Text("₹${CurrencyFormatter.format(historicCycle.loanAmount)}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ColorSlateDark)
                 }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Interest Charged", fontSize = 10.sp, color = Color.Gray)
+                    Text("₹${CurrencyFormatter.format(historicCycle.interestAmount)}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFD97706))
+                }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Total Paid Back", fontSize = 11.sp, color = Color.Gray)
+                    Text("Total Paid Back", fontSize = 10.sp, color = Color.Gray)
                     Text("₹${CurrencyFormatter.format(totalPaid)}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ColorGainGreen)
                 }
             }
-            
-            Spacer(modifier = Modifier.height(10.dp))
-            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
-            Spacer(modifier = Modifier.height(10.dp))
-            
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("Actual Tenure Taken", fontSize = 11.sp, color = Color.Gray)
-                    Text(durationLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ColorSlateDark)
+                    Text("Weekly Instalment", fontSize = 10.sp, color = Color.Gray)
+                    Text("₹${CurrencyFormatter.format(historicCycle.weeklyAmount)} / wk", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Interest % Paid", fontSize = 11.sp, color = Color.Gray)
-                    Text(
-                        text = "${String.format(Locale.getDefault(), "%.1f", flatRate)}% Flat",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ColorSlateDark
-                    )
-                    if (diffDays > 0) {
-                        Text(
-                            text = "(${String.format(Locale.getDefault(), "%.1f", annualizedRate)}% p.a. speed)",
-                            fontSize = 10.sp,
-                            color = ColorAccentBlue,
-                            fontWeight = FontWeight.SemiBold
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Tenure Weeks", fontSize = 10.sp, color = Color.Gray)
+                    Text("${historicCycle.totalWeeks} Weeks", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = ColorSlateDark)
+                }
+                if (historicCycle.deduction > 0) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Deduction", fontSize = 10.sp, color = Color.Gray)
+                        Text("₹${CurrencyFormatter.format(historicCycle.deduction)}", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF7C3AED))
+                    }
+                } else {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Outstanding", fontSize = 10.sp, color = Color.Gray)
+                        Text("₹0", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = ColorGainGreen)
+                    }
+                }
+            }
+
+            if (historicCycle.notes.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text("Notes: ${historicCycle.notes}", fontSize = 11.sp, color = Color.Gray, fontStyle = FontStyle.Italic)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Action Row: Edit Loan Details & Add Payment buttons
+            if (currentUserRole != "USER") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onEditLoan,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit Loan Details", fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = onAddPayment,
+                        colors = ButtonDefaults.buttonColors(containerColor = ColorAccentBlue),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("+ Add Receipt", fontSize = 11.sp, color = Color.White)
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            // Receipts / Payment Transactions Breakdown for this Past Loan
+            Text(
+                text = "Receipts Breakdown (${payments.size})",
+                fontWeight = FontWeight.Bold,
+                fontSize = 12.sp,
+                color = ColorSlateDark
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            if (payments.isEmpty()) {
+                Text("No payment receipts recorded.", fontSize = 11.sp, color = Color.Gray)
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    payments.sortedBy { it.weekNumber }.forEach { payment ->
+                        PaymentHistoryRow(
+                            payment = payment,
+                            onEdit = { onEditPayment(payment) },
+                            onDelete = { onDeletePayment(payment) },
+                            currentUserRole = currentUserRole
                         )
                     }
                 }

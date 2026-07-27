@@ -85,6 +85,8 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
 
     var confirmEditPaymentTarget by remember { mutableStateOf<WeeklyPayment?>(null) }
     var editingPaymentTarget by remember { mutableStateOf<WeeklyPayment?>(null) }
+    var todayPaymentsListTarget by remember { mutableStateOf<List<WeeklyPayment>?>(null) }
+    var deletingPaymentTarget by remember { mutableStateOf<WeeklyPayment?>(null) }
 
     if (linkingPayment != null) {
         val payment = linkingPayment!!
@@ -404,7 +406,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                                                 onClick = { linkingPayment = payment },
                                                 colors = ButtonDefaults.buttonColors(containerColor = appColors.primaryAccent),
                                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-                                                modifier = Modifier.height(32.dp)
+                                                modifier = Modifier.defaultMinSize(minHeight = 32.dp)
                                             ) {
                                                 Text(translate("Link", language), color = Color.White, fontSize = 12.sp)
                                             }
@@ -430,7 +432,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             Box(
                                 modifier = Modifier
                                     .weight(1.0f)
-                                    .height(50.dp)
+                                    .defaultMinSize(minHeight = 48.dp)
                                     .background(Color.White, RoundedCornerShape(12.dp))
                                     .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
                                     .clickable { viewModel.navigateTo(Screen.Search(currentDayVal)) }
@@ -467,9 +469,9 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                                     contentColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                                 modifier = Modifier
-                                    .height(50.dp)
+                                    .defaultMinSize(minHeight = 48.dp)
                                     .testTag("add_customer_fab")
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = "Add Customer", tint = Color.White, modifier = Modifier.size(18.dp))
@@ -491,7 +493,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                                 border = BorderStroke(1.dp, appColors.primaryAccent.copy(alpha = 0.3f)),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(48.dp)
+                                    .defaultMinSize(minHeight = 48.dp)
                                     .padding(vertical = 2.dp)
                                     .testTag("bulk_entry_trigger_button")
                             ) {
@@ -712,14 +714,31 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                                 isScrolling = scrollState.isScrollInProgress || !hasPaymentInPast2Days, // Trigger attention checklist shaker animation
                                 hasPaymentInPast2Days = hasPaymentInPast2Days,
                                 onEditPaymentClicked = { activeLoanId ->
-                                    val yCal = Calendar.getInstance().apply {
+                                    val tCal = Calendar.getInstance().apply {
                                         set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                                     }
-                                    val startOfYesterday = yCal.timeInMillis - java.util.concurrent.TimeUnit.DAYS.toMillis(1)
-                                    val paymentToEdit = allPayments.find { 
-                                        it.loanCycleId == activeLoanId && it.paymentDate >= startOfYesterday && it.status == "ACTIVE" 
+                                    val startOfToday = tCal.timeInMillis
+                                    val startOfYesterday = startOfToday - java.util.concurrent.TimeUnit.DAYS.toMillis(1)
+
+                                    val todayEntries = allPayments.filter { 
+                                        it.loanCycleId == activeLoanId && it.paymentDate >= startOfToday && it.status.uppercase() != "DELETED" 
+                                    }.sortedByDescending { it.paymentDate }
+
+                                    if (todayEntries.size > 1) {
+                                        todayPaymentsListTarget = todayEntries
+                                    } else if (todayEntries.size == 1) {
+                                        confirmEditPaymentTarget = todayEntries.first()
+                                    } else {
+                                        val recentEntries = allPayments.filter { 
+                                            it.loanCycleId == activeLoanId && it.paymentDate >= startOfYesterday && it.status.uppercase() != "DELETED" 
+                                        }.sortedByDescending { it.paymentDate }
+
+                                        if (recentEntries.size > 1) {
+                                            todayPaymentsListTarget = recentEntries
+                                        } else if (recentEntries.isNotEmpty()) {
+                                            confirmEditPaymentTarget = recentEntries.first()
+                                        }
                                     }
-                                    if (paymentToEdit != null) confirmEditPaymentTarget = paymentToEdit
                                 }
                             )
                         }
@@ -902,6 +921,147 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
             dismissButton = {
                 TextButton(
                     onClick = { customerToReorder = null }
+                ) {
+                    Text(translate("Cancel", language))
+                }
+            }
+        )
+    }
+
+    if (todayPaymentsListTarget != null) {
+        val entriesList = todayPaymentsListTarget!!
+        val timeFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+        val totalSum = entriesList.sumOf { it.amountPaid }
+
+        AlertDialog(
+            onDismissRequest = { todayPaymentsListTarget = null },
+            containerColor = Color.White,
+            titleContentColor = Color.Black,
+            textContentColor = Color.Black,
+            title = {
+                Column {
+                    Text(
+                        text = translate("Today's Collection Entries", language),
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${translate("Total", language)}: ₹${CurrencyFormatter.format(totalSum)} (${entriesList.size} ${translate("entries", language)})",
+                        fontSize = 13.sp,
+                        color = ColorGainGreen,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            text = {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                ) {
+                    items(entriesList) { itemEntry ->
+                        val initialNote = itemEntry.notes.ifBlank { "Cash" }
+                        val modeLabel = if (initialNote.equals("Online", ignoreCase = true)) "UPI" else initialNote
+                        
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "₹${CurrencyFormatter.format(itemEntry.amountPaid)}",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 16.sp,
+                                        color = ColorGainGreen
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "${translate("Week", language)} ${itemEntry.weekNumber} • $modeLabel • ${timeFormat.format(java.util.Date(itemEntry.paymentDate))}",
+                                        fontSize = 12.sp,
+                                        color = Color.DarkGray
+                                    )
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    IconButton(
+                                        onClick = {
+                                            editingPaymentTarget = itemEntry
+                                            todayPaymentsListTarget = null
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "Edit Entry",
+                                            tint = appColors.primaryAccent,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = {
+                                            deletingPaymentTarget = itemEntry
+                                            todayPaymentsListTarget = null
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete Entry",
+                                            tint = ColorLossRed,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { todayPaymentsListTarget = null }
+                ) {
+                    Text(translate("Close", language), color = appColors.primaryAccent, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    if (deletingPaymentTarget != null) {
+        val targetPayment = deletingPaymentTarget!!
+        AlertDialog(
+            onDismissRequest = { deletingPaymentTarget = null },
+            containerColor = Color.White,
+            titleContentColor = Color.Black,
+            textContentColor = Color.Black,
+            title = { Text(translate("Delete Instalment Entry", language), fontWeight = FontWeight.Bold, color = Color.Black) },
+            text = { Text("${translate("Are you sure you want to delete this payment record of", language)} ₹${CurrencyFormatter.format(targetPayment.amountPaid)}?", color = Color.Black) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deletePayment(targetPayment.id, targetPayment.loanCycleId)
+                        deletingPaymentTarget = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ColorLossRed)
+                ) {
+                    Text(translate("Delete Entry", language), color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { deletingPaymentTarget = null },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.DarkGray)
                 ) {
                     Text(translate("Cancel", language))
                 }
@@ -1145,7 +1305,7 @@ fun CylindricalDaySelector(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp)
+            .defaultMinSize(minHeight = 56.dp)
             .background(Color.White, RoundedCornerShape(16.dp))
             .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(16.dp)),
         contentAlignment = Alignment.CenterStart
@@ -1160,15 +1320,21 @@ fun CylindricalDaySelector(
             items(daysList.size) { index ->
                 val day = daysList[index]
                 val isActive = day == activeDay
+                val animatedElevation = animateDpAsState(
+                    targetValue = if (isActive) 6.dp else 2.dp,
+                    animationSpec = spring(stiffness = Spring.StiffnessLow),
+                    label = "chip_elevation"
+                )
                 Box(
                     modifier = Modifier
-                        .height(44.dp)
+                        .defaultMinSize(minHeight = 40.dp)
+                        .threeDDepthCard(elevation = animatedElevation.value, shape = RoundedCornerShape(22.dp))
                         .background(
                             color = if (isActive) appColors.primaryAccent else Color(0xFFF1F5F9),
                             shape = RoundedCornerShape(22.dp)
                         )
-                        .clickable { onDaySelected(day) }
-                        .padding(horizontal = 16.dp)
+                        .threeDPressable { onDaySelected(day) }
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                         .testTag("day_selector_chip_$day"),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1894,8 +2060,9 @@ fun StatsReportingCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .threeDDepthCard(elevation = 4.dp, shape = RoundedCornerShape(12.dp))
                                 .background(appColors.todayCollectionBg, RoundedCornerShape(12.dp))
-                                .clickable(enabled = onCardClick != null) { onCardClick?.invoke("COLLECTION") }
+                                .threeDPressable(enabled = onCardClick != null) { onCardClick?.invoke("COLLECTION") }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                 .testTag("stats_card_collection_btn"),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1938,8 +2105,9 @@ fun StatsReportingCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .threeDDepthCard(elevation = 4.dp, shape = RoundedCornerShape(12.dp))
                                 .background(appColors.todayDueCreatedBg, RoundedCornerShape(12.dp))
-                                .clickable(enabled = onCardClick != null) { onCardClick?.invoke("DISBURSAL") }
+                                .threeDPressable(enabled = onCardClick != null) { onCardClick?.invoke("DISBURSAL") }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                 .testTag("stats_card_disbursal_btn"),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1982,8 +2150,9 @@ fun StatsReportingCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .threeDDepthCard(elevation = 4.dp, shape = RoundedCornerShape(12.dp))
                                 .background(appColors.todayInterestBg, RoundedCornerShape(12.dp))
-                                .clickable(enabled = onCardClick != null) { onCardClick?.invoke("PROFIT") }
+                                .threeDPressable(enabled = onCardClick != null) { onCardClick?.invoke("PROFIT") }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                 .testTag("stats_card_profit_btn"),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -2026,8 +2195,9 @@ fun StatsReportingCard(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .threeDDepthCard(elevation = 4.dp, shape = RoundedCornerShape(12.dp))
                                 .background(Color(0xFF8B5CF6), RoundedCornerShape(12.dp))
-                                .clickable(enabled = onCardClick != null) { onCardClick?.invoke("DEDUCTIONS") }
+                                .threeDPressable(enabled = onCardClick != null) { onCardClick?.invoke("DEDUCTIONS") }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                                 .testTag("stats_card_deductions_btn"),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -2188,24 +2358,18 @@ fun CustomerOverviewCard(
         label = "x"
     )
 
-    val currentDensity = LocalDensity.current
-    val buttonDensity = remember(currentDensity, fontSizeScale) {
-        Density(
-            density = currentDensity.density,
-            fontScale = if (fontSizeScale > 0) currentDensity.fontScale / fontSizeScale else currentDensity.fontScale
-        )
-    }
     val appColors = LocalAppThemeColors.current
     val context = LocalContext.current
     val currentUserRole by viewModel.currentUserRole.collectAsStateWithLifecycle()
     Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, appColors.primaryAccent.copy(alpha = 0.12f)),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, appColors.primaryAccent.copy(alpha = 0.15f)),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onCardClicked() }
+            .threeDDepthCard(elevation = 3.dp, shape = RoundedCornerShape(14.dp))
+            .threeDPressable { onCardClicked() }
             .testTag("customer_card_${item.customer.id}")
     ) {
         Row(
@@ -2482,7 +2646,6 @@ fun CustomerOverviewCard(
                                                  .clickable { onReceiveClicked(activeLoan.id) }
                                          )
                                      } else {
-                                     CompositionLocalProvider(LocalDensity provides buttonDensity) {
                                          Column(
                                              horizontalAlignment = Alignment.CenterHorizontally,
                                              verticalArrangement = Arrangement.Center,
@@ -2535,7 +2698,6 @@ fun CustomerOverviewCard(
                                             )
                                         }
                                         }
-                                    }
                                     }
                                 }
                             }
