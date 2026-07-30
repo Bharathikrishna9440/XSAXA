@@ -1772,7 +1772,8 @@ fun TemplatesSubPage(
                 val allCustomers by viewModel.allCustomers.collectAsStateWithLifecycle()
                 val filteredCustomers = remember(allCustomers, selectedSmsDay) {
                     allCustomers.filter { 
-                        it.collectionDay.trim().equals(selectedSmsDay.trim(), ignoreCase = true) 
+                        it.collectionDay.trim().equals(selectedSmsDay.trim(), ignoreCase = true) &&
+                        it.phone.trim().isNotEmpty()
                     }.sortedBy { it.customOrder }
                 }
 

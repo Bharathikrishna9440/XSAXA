@@ -3241,10 +3241,16 @@ fun getOverviewListForDay(
     search: String,
     sortMode: String
 ): List<CustomerCollectionItem> {
-    val filteredByDay = if (day.equals("Home", ignoreCase = true)) {
-        allCustomers
+    val cleanQuery = search.trim()
+    val isSearching = cleanQuery.isNotEmpty()
+
+    val filteredByDay = if (isSearching || day.equals("Home", ignoreCase = true) || day.equals("ALL", ignoreCase = true)) {
+        allCustomers.filter { !it.collectionDay.trim().equals("Friday", ignoreCase = true) }
     } else {
-        allCustomers.filter { it.collectionDay.equals(day, ignoreCase = true) }
+        allCustomers.filter { 
+            !it.collectionDay.trim().equals("Friday", ignoreCase = true) &&
+            it.collectionDay.trim().equals(day.trim(), ignoreCase = true) 
+        }
     }
     
     val sortedByOrder = filteredByDay.sortedBy { it.customOrder }
@@ -3286,14 +3292,27 @@ fun getOverviewListForDay(
         )
     }
     
-    val filtered = if (search.isBlank()) {
+    val filtered = if (!isSearching) {
         mapped
     } else {
-        mapped.filter {
-            it.customer.name.contains(search, ignoreCase = true) ||
-            it.customer.phone.contains(search, ignoreCase = true) ||
-            it.customer.phone2.contains(search, ignoreCase = true) ||
-            it.customer.city.contains(search, ignoreCase = true)
+        val queryDigits = cleanQuery.filter { it.isDigit() }
+        mapped.filter { item ->
+            val c = item.customer
+            val phoneDigits = c.phone.filter { it.isDigit() }
+            val phone2Digits = c.phone2.filter { it.isDigit() }
+
+            val matchesName = c.name.contains(cleanQuery, ignoreCase = true)
+            val matchesCity = c.city.contains(cleanQuery, ignoreCase = true)
+            val matchesPhoneRaw = c.phone.contains(cleanQuery, ignoreCase = true) || c.phone2.contains(cleanQuery, ignoreCase = true)
+            val matchesPhoneDigits = queryDigits.isNotEmpty() && (
+                phoneDigits.contains(queryDigits) || 
+                phone2Digits.contains(queryDigits) ||
+                (queryDigits.length >= 10 && phoneDigits.endsWith(queryDigits.takeLast(10))) ||
+                (phoneDigits.length >= 10 && queryDigits.endsWith(phoneDigits.takeLast(10)))
+            )
+            val matchesOrder = c.customOrder.toString() == cleanQuery || c.id.toString() == cleanQuery
+
+            matchesName || matchesCity || matchesPhoneRaw || matchesPhoneDigits || matchesOrder
         }
     }
 

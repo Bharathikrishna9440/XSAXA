@@ -1728,23 +1728,116 @@ fun CustomerDetailScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Khatabook ledger timeline tabs (moved below active card / past history entries)
-        TabRow(
-            selectedTabIndex = activeTab,
-            containerColor = Color.Transparent,
-            contentColor = ColorSlateDark,
-            modifier = Modifier.testTag("accounts_past_history_toggle")
+        // Vertical stacked toggle rows for Active Loan and Past History counts
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Tab(
-                selected = activeTab == 0,
+            // Line 1: Active Loan count
+            Surface(
                 onClick = { activeTab = 0 },
-                text = { Text("Active Accounts (${activeLoans.size})", fontWeight = FontWeight.Bold) }
-            )
-            Tab(
-                selected = activeTab == 1,
+                shape = RoundedCornerShape(12.dp),
+                color = if (activeTab == 0) appColors.primaryAccent.copy(alpha = 0.12f) else Color(0xFFF8FAFC),
+                border = BorderStroke(
+                    width = if (activeTab == 0) 1.5.dp else 1.dp,
+                    color = if (activeTab == 0) appColors.primaryAccent else Color(0xFFE2E8F0)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("accounts_active_toggle")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AccountBalance,
+                            contentDescription = null,
+                            tint = if (activeTab == 0) appColors.primaryAccent else ColorSlateDark,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Active Loan",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = if (activeTab == 0) appColors.primaryAccent else ColorSlateDark
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (activeTab == 0) appColors.primaryAccent else Color(0xFF94A3B8)
+                    ) {
+                        Text(
+                            text = "${activeLoans.size}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            // Line 2: Past History count (one line below active loan)
+            Surface(
                 onClick = { activeTab = 1 },
-                text = { Text("Past History (${paidHistory.size})", fontWeight = FontWeight.Bold) }
-            )
+                shape = RoundedCornerShape(12.dp),
+                color = if (activeTab == 1) appColors.primaryAccent.copy(alpha = 0.12f) else Color(0xFFF8FAFC),
+                border = BorderStroke(
+                    width = if (activeTab == 1) 1.5.dp else 1.dp,
+                    color = if (activeTab == 1) appColors.primaryAccent else Color(0xFFE2E8F0)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("accounts_past_history_toggle")
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = null,
+                            tint = if (activeTab == 1) appColors.primaryAccent else ColorSlateDark,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Past History",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = if (activeTab == 1) appColors.primaryAccent else ColorSlateDark
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (activeTab == 1) appColors.primaryAccent else Color(0xFF94A3B8)
+                    ) {
+                        Text(
+                            text = "${paidHistory.size}",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 
