@@ -124,11 +124,11 @@ object StatementGenerator {
         canvas.drawText("Loan Summary", 435f, 245f, textPaint)
         
         val amtPaid = payments.sumOf { it.amountPaid }.toLong()
-        val amtDisbursedVal = (activeLoan.loanAmount - activeLoan.deduction).toLong()
         val totalContractVal = (activeLoan.loanAmount + activeLoan.interestAmount).toLong()
         val outstandingVal = totalContractVal - amtPaid
+        val dispersalDateStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(activeLoan.startDate))
         
-        canvas.drawText("Amount of Dispersal: ₹$amtDisbursedVal", 435f, 280f, labelPaint)
+        canvas.drawText("Date of Dispersal: $dispersalDateStr", 435f, 280f, labelPaint)
         canvas.drawText("Total Contract Value: ₹$totalContractVal", 435f, 310f, labelPaint)
         canvas.drawText("Amt Paid: ₹$amtPaid", 435f, 340f, labelPaint)
         canvas.drawText("Outstanding: ₹$outstandingVal", 435f, 370f, labelPaint)

@@ -419,15 +419,14 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                 }
 
                 // Search Bar & Add Customer trigger
-                if (currentDayVal != "Home") {
-                    item {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                        ) {
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
                             // Clickable Search Bar that navigates to dedicated Search screen
                             Box(
                                 modifier = Modifier
@@ -513,7 +512,6 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             }
                         }
                     }
-                }
 
                 if (currentDayVal == "Home") {
                     item {
@@ -3295,24 +3293,36 @@ fun getOverviewListForDay(
     val filtered = if (!isSearching) {
         mapped
     } else {
-        val queryDigits = cleanQuery.filter { it.isDigit() }
+        val tokens = cleanQuery.lowercase(java.util.Locale.getDefault()).split("\\s+".toRegex()).filter { it.isNotEmpty() }
         mapped.filter { item ->
             val c = item.customer
+            val nameLower = c.name.lowercase(java.util.Locale.getDefault())
+            val cityLower = c.city.lowercase(java.util.Locale.getDefault())
+            val groupLower = c.collectionDay.lowercase(java.util.Locale.getDefault())
+            val phoneRaw = c.phone.lowercase(java.util.Locale.getDefault())
+            val phone2Raw = c.phone2.lowercase(java.util.Locale.getDefault())
             val phoneDigits = c.phone.filter { it.isDigit() }
             val phone2Digits = c.phone2.filter { it.isDigit() }
+            val orderStr = c.customOrder.toString()
+            val idStr = c.id.toString()
+            val activeLoanIds = item.activeLoans.map { it.id.toString() }
 
-            val matchesName = c.name.contains(cleanQuery, ignoreCase = true)
-            val matchesCity = c.city.contains(cleanQuery, ignoreCase = true)
-            val matchesPhoneRaw = c.phone.contains(cleanQuery, ignoreCase = true) || c.phone2.contains(cleanQuery, ignoreCase = true)
-            val matchesPhoneDigits = queryDigits.isNotEmpty() && (
-                phoneDigits.contains(queryDigits) || 
-                phone2Digits.contains(queryDigits) ||
-                (queryDigits.length >= 10 && phoneDigits.endsWith(queryDigits.takeLast(10))) ||
-                (phoneDigits.length >= 10 && queryDigits.endsWith(phoneDigits.takeLast(10)))
-            )
-            val matchesOrder = c.customOrder.toString() == cleanQuery || c.id.toString() == cleanQuery
+            tokens.all { token ->
+                val tokenDigits = token.filter { it.isDigit() }
 
-            matchesName || matchesCity || matchesPhoneRaw || matchesPhoneDigits || matchesOrder
+                val matchesName = nameLower.contains(token)
+                val matchesCity = cityLower.contains(token)
+                val matchesGroup = groupLower.contains(token)
+                val matchesPhoneRaw = phoneRaw.contains(token) || phone2Raw.contains(token)
+                val matchesPhoneDigits = tokenDigits.isNotEmpty() && (
+                    phoneDigits.contains(tokenDigits) || 
+                    phone2Digits.contains(tokenDigits)
+                )
+                val matchesOrder = orderStr == token || idStr == token
+                val matchesLoan = activeLoanIds.any { it == token }
+
+                matchesName || matchesCity || matchesGroup || matchesPhoneRaw || matchesPhoneDigits || matchesOrder || matchesLoan
+            }
         }
     }
 
