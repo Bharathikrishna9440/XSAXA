@@ -12,6 +12,16 @@ import com.example.util.CurrencyFormatter
 
 object SmsService {
 
+    private fun showToast(context: Context, message: String, duration: Int = Toast.LENGTH_SHORT) {
+        try {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                Toast.makeText(context, message, duration).show()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     fun sendSmsIntent(
         context: Context,
         phone: String,
@@ -20,11 +30,11 @@ object SmsService {
         simSelection: String
     ) {
         if (phone.trim().isEmpty()) {
-            Toast.makeText(context, "No phone number available. SMS skipped.", Toast.LENGTH_SHORT).show()
+            showToast(context, "No phone number available. SMS skipped.")
             return
         }
         if (smsPaused) {
-            Toast.makeText(context, "All outgoing SMS notifications are temporarily PAUSED globally in Settings.", Toast.LENGTH_LONG).show()
+            showToast(context, "All outgoing SMS notifications are temporarily PAUSED globally in Settings.", Toast.LENGTH_LONG)
             return
         }
         var cleanPhone = phone.replace("+", "").replace(" ", "").trim()
@@ -75,10 +85,10 @@ object SmsService {
                 } else {
                     targetSmsManager.sendTextMessage(formattedPhone, null, text, null, null)
                 }
-                Toast.makeText(context, "SMS sent automatically to $formattedPhone", Toast.LENGTH_SHORT).show()
+                showToast(context, "SMS sent automatically to $formattedPhone")
                 return
             } catch (e: Exception) {
-                Toast.makeText(context, "Auto SMS failed: ${e.message}. Launching manual...", Toast.LENGTH_SHORT).show()
+                showToast(context, "Auto SMS failed: ${e.message}. Launching manual...")
             }
         }
 
@@ -111,7 +121,7 @@ object SmsService {
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "Launch SMS Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            showToast(context, "Launch SMS Failed: ${e.message}")
         }
     }
 
@@ -227,7 +237,7 @@ object SmsService {
 
     fun triggerWhatsappWebFallback(context: Context, phone: String, text: String) {
         if (phone.trim().isEmpty()) {
-            Toast.makeText(context, "No phone number available. WhatsApp skipped.", Toast.LENGTH_SHORT).show()
+            showToast(context, "No phone number available. WhatsApp skipped.")
             return
         }
         var cleanPhone = phone.filter { it.isDigit() }
@@ -245,7 +255,7 @@ object SmsService {
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "Launch WhatsApp Failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            showToast(context, "Launch WhatsApp Failed: ${e.message}")
         }
     }
 
@@ -259,7 +269,7 @@ object SmsService {
         phone: String = customer.phone
     ) {
         if (phone.trim().isEmpty()) {
-            Toast.makeText(context, "No phone number available. WhatsApp skipped.", Toast.LENGTH_SHORT).show()
+            showToast(context, "No phone number available. WhatsApp skipped.")
             return
         }
         val totalDue = loan.loanAmount + loan.interestAmount

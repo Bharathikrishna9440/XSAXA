@@ -2533,7 +2533,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             markDirty()
         } catch (e: Exception) {
             e.printStackTrace()
-            android.widget.Toast.makeText(appCtx, "Failed to save QR Code: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                android.widget.Toast.makeText(appCtx, "Failed to save QR Code: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -4745,7 +4747,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 
             } catch (e: java.lang.Exception) {
                 e.printStackTrace()
-                android.widget.Toast.makeText(context, "Failed to generate report: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "Failed to generate report: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                }
             } finally {
                 _isExportImportLoading.value = false
             }
