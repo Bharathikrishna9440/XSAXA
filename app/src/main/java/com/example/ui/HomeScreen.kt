@@ -2638,11 +2638,13 @@ fun CustomerOverviewCard(
                                     -1
                                 }
 
+                                val isCustomerCollectionDayToday = (customerDayOfWeek == todayDayOfWeek)
+
                                 val needsAttention = balance > 0.0 && 
                                                      (diff in 0..2) && 
                                                      !actualHasPaymentInPast2Days
 
-                                val showRedMultiple = needsAttention && isCurrentDayMyDay
+                                val showRedMultiple = needsAttention && isCustomerCollectionDayToday
                                 val shakeOffset = if (showRedMultiple) translationX else 0f
 
                                 if (todayPaidAmt != null) {
@@ -3275,7 +3277,7 @@ fun getOverviewListForDay(
     val cleanQuery = search.trim()
     val isSearching = cleanQuery.isNotEmpty()
 
-    val filteredByDay = if (isSearching || day.equals("Home", ignoreCase = true) || day.equals("ALL", ignoreCase = true)) {
+    val filteredByDay = if (day.equals("Home", ignoreCase = true) || day.equals("ALL", ignoreCase = true)) {
         allCustomers.filter { !it.collectionDay.trim().equals("Friday", ignoreCase = true) }
     } else {
         allCustomers.filter { 
