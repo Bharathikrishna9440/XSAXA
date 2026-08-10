@@ -55,10 +55,21 @@ class MainActivity : ComponentActivity() {
         try {
             com.example.network.FirebaseAnalyticsManager.initialize(this@MainActivity)
             com.example.network.FirebaseRemoteConfigManager.initializeAndFetch()
-            com.google.firebase.appcheck.FirebaseAppCheck.getInstance().installAppCheckProviderFactory(com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory.getInstance())
-            com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+            try {
+                val appCheck = com.google.firebase.appcheck.FirebaseAppCheck.getInstance()
+                appCheck.installAppCheckProviderFactory(
+                    com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory.getInstance()
+                )
+            } catch (e: Throwable) {
+                android.util.Log.w("MainActivity", "AppCheck provider skipped: ${e.message}")
+            }
+            try {
+                com.google.firebase.crashlytics.FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true)
+            } catch (e: Throwable) {
+                android.util.Log.w("MainActivity", "Crashlytics init note: ${e.message}")
+            }
         } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Firebase background init failed: ${e.message}", e)
+            android.util.Log.w("MainActivity", "Firebase background init note: ${e.message}")
         }
 
         // Trigger the silent cloud vault handshake
@@ -89,9 +100,10 @@ class MainActivity : ComponentActivity() {
     }
 
     setContent {
-      MyApplicationTheme {
-        viewModel = viewModel()
+      viewModel = viewModel()
+      val fontStyleKey by viewModel.fontStyleKey.collectAsStateWithLifecycle()
 
+      MyApplicationTheme(fontStyleKey = fontStyleKey) {
         val currentLanguage by viewModel.language.collectAsStateWithLifecycle()
         val context = LocalContext.current
         val localizedContext = remember(context, currentLanguage) {

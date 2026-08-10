@@ -106,7 +106,7 @@ object FirebaseConnectionManager {
                     onSuccess()
                 } else {
                     val errorMessage = task.exception?.message ?: "Unknown security handshake error"
-                    Log.e(TAG, "Cloud pipeline connection failed: $errorMessage")
+                    Log.w(TAG, "Cloud pipeline connection operating in local/offline mode: $errorMessage")
                     isCloudPipelineReady = false
                     onFailure(errorMessage)
                 }

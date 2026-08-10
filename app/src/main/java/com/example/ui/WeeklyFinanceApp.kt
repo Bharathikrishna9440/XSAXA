@@ -377,6 +377,8 @@ fun WeeklyFinanceApp(
         }
     }
 
+    val fontStyleKey by viewModel.fontStyleKey.collectAsStateWithLifecycle()
+    val appFontFamily = remember(fontStyleKey) { com.example.ui.theme.getAppFontFamily(fontStyleKey) }
     val currentDensity = LocalDensity.current
     val colors = getThemeColors(selectedTheme)
     
@@ -385,6 +387,8 @@ fun WeeklyFinanceApp(
     
     CompositionLocalProvider(
         LocalAppThemeColors provides colors,
+        com.example.ui.theme.LocalAppFontFamily provides appFontFamily,
+        LocalTextStyle provides androidx.compose.ui.text.TextStyle(fontFamily = appFontFamily),
         LocalDensity provides Density(
             density = currentDensity.density,
             fontScale = coercedFontScale
@@ -622,7 +626,7 @@ fun WeeklyFinanceApp(
                                         Text(
                                             text = customAppName,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = FontFamily.SansSerif,
+                                            fontFamily = appFontFamily,
                                             color = Color.White,
                                             maxLines = 1,
                                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
@@ -653,7 +657,7 @@ fun WeeklyFinanceApp(
                                         Text(
                                             text = displayTitle,
                                             fontWeight = FontWeight.Bold,
-                                            fontFamily = FontFamily.SansSerif,
+                                            fontFamily = appFontFamily,
                                             color = Color.White,
                                             maxLines = 1,
                                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis

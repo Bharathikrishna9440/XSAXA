@@ -91,6 +91,7 @@ fun SettingsScreen(viewModel: FinanceViewModel) {
     // Sync states removed
 
     val fontSizeScale by viewModel.fontSizeScale.collectAsStateWithLifecycle()
+    val fontStyleKey by viewModel.fontStyleKey.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val msgCompilingBackup = translate("Generating and transmitting YAML snapshot to Cloud Backup...", language)
     val msgBackupUploaded = translate("Cloud YAML Ledger backup uploaded successfully!", language)
@@ -470,7 +471,7 @@ fun SettingsScreen(viewModel: FinanceViewModel) {
                         )
                     } else {
                         when (activeSubPage) {
-                "font" -> FontSizeSubPage(language = language, fontSizeScale = fontSizeScale, viewModel = viewModel, appColors = appColors)
+                "font" -> FontSizeSubPage(language = language, fontSizeScale = fontSizeScale, fontStyleKey = fontStyleKey, viewModel = viewModel, appColors = appColors)
                 "business" -> BusinessUpiSubPage(
                     language = language,
                     viewModel = viewModel,

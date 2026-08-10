@@ -128,43 +128,50 @@ fun FontSizeSubPage(
     language: String,
     viewModel: FinanceViewModel,
     appColors: AppThemeColors,
-    fontSizeScale: Float
+    fontSizeScale: Float,
+    fontStyleKey: String = "SANS_SERIF"
 ) {
     val isDark = appColors.isDark
     val cardBg = if (isDark) Color(0xFF1E293B) else Color.White
     val cardBorder = if (isDark) Color(0xFF334155) else Color(0xFFE2E8F0)
     val textColor = if (isDark) Color.White else ColorSlateDark
     val subTextColor = if (isDark) Color(0xFF94A3B8) else Color.DarkGray
+    val activeFontFamily = com.example.ui.theme.getAppFontFamily(fontStyleKey)
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, cardBorder),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Text(
-                text = translate("Select text typography scale setting to fit comfortably on small screens.", language),
-                fontSize = 11.sp,
-                color = subTextColor
-            )
-
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val sizes = listOf(
-                    "Tiny" to ("Tiny / Extra Compact (0.75x)" to 0.75f),
-                    "Compact" to ("Small / Compact (0.90x)" to 0.90f),
-                    "Regular" to ("Regular / Comfort (1.00x)" to 1.00f),
-                    "Normal" to ("Normal / Standard (1.15x)" to 1.15f),
-                    "Medium" to ("Medium / Readable (1.25x)" to 1.25f),
-                    "Large" to ("Large / Enlarged (1.35x)" to 1.35f),
-                    "Extra Large" to ("Extra Large / XL (1.50x)" to 1.50f),
-                    "Huge" to ("Huge / High Visibility (1.65x)" to 1.65f),
-                    "Gigantic" to ("Gigantic / Maximum Zoom (1.80x)" to 1.80f)
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        // Section 1: Font Style Choice
+        Card(
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, cardBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = translate("Font Style (Typeface Family)", language),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = appColors.primaryAccent
+                )
+                Text(
+                    text = translate("Select an in-built font family style to apply across all app screens, titles, ledgers and receipts.", language),
+                    fontSize = 11.sp,
+                    color = subTextColor
                 )
 
-                sizes.forEach { (sizeKey, pair) ->
-                    val (label, targetScale) = pair
-                    val isSel = kotlin.math.abs(fontSizeScale - targetScale) < 0.051f
+                val fontStyles = listOf(
+                    "SANS_SERIF" to ("Sans-Serif (Standard & Clean)" to "Clean, modern high-legibility geometric font"),
+                    "SERIF" to ("Serif (Classic & Editorial)" to "Traditional, elegant serif letterforms"),
+                    "MONOSPACE" to ("Monospace (Digital & Ledger)" to "Fixed-width digits for crisp accounting figures"),
+                    "CURSIVE" to ("Cursive (Stylish Script)" to "Flowing decorative display typography"),
+                    "DEFAULT" to ("System Default" to "Native Android OS default system typeface")
+                )
+
+                fontStyles.forEach { (key, pair) ->
+                    val (label, desc) = pair
+                    val isSel = fontStyleKey.equals(key, ignoreCase = true)
+                    val styleFontFamily = com.example.ui.theme.getAppFontFamily(key)
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -177,67 +184,244 @@ fun FontSizeSubPage(
                                 color = if (isSel) appColors.primaryAccent else cardBorder,
                                 shape = RoundedCornerShape(8.dp)
                             )
-                            .clickable { viewModel.setFontSizeScale(targetScale) }
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                            .clickable { viewModel.setFontStyleKey(key) }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = translate(label, language),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            color = textColor
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = translate(label, language),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                fontFamily = styleFontFamily,
+                                color = textColor
+                            )
+                            Text(
+                                text = "Sample: MD Finance ₹1,25,000 — $desc",
+                                fontSize = 10.sp,
+                                fontFamily = styleFontFamily,
+                                color = subTextColor,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
 
                         RadioButton(
                             selected = isSel,
-                            onClick = { viewModel.setFontSizeScale(targetScale) },
+                            onClick = { viewModel.setFontStyleKey(key) },
                             colors = RadioButtonDefaults.colors(selectedColor = appColors.primaryAccent)
                         )
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            HorizontalDivider(color = cardBorder)
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = translate("Typography Live Preview", language),
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = appColors.primaryAccent
-            )
-            
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
-                ),
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, cardBorder),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Section 2: Font Size Scale
+        Card(
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, cardBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = translate("Font Size Scale", language),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = appColors.primaryAccent
+                )
+                Text(
+                    text = translate("Select text typography scale setting to fit comfortably on small screens.", language),
+                    fontSize = 11.sp,
+                    color = subTextColor
+                )
+
+                val sizes = listOf(
+                    "Tiny" to ("Tiny / Extra Compact (0.75x)" to 0.75f),
+                    "Compact" to ("Small / Compact (0.90x)" to 0.90f),
+                    "Regular" to ("Regular / Comfort (1.00x)" to 1.00f),
+                    "Normal" to ("Normal / Standard (1.15x)" to 1.15f),
+                    "Medium" to ("Medium / Readable (1.25x)" to 1.25f),
+                    "Large" to ("Large / Enlarged (1.35x)" to 1.35f),
+                    "Extra Large" to ("Extra Large / XL (1.50x)" to 1.50f),
+                    "Huge" to ("Huge / High Visibility (1.65x)" to 1.65f),
+                    "Gigantic" to ("Gigantic / Maximum Zoom (1.80x)" to 1.80f)
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    sizes.forEach { (_, pair) ->
+                        val (label, targetScale) = pair
+                        val isSel = kotlin.math.abs(fontSizeScale - targetScale) < 0.051f
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    color = if (isSel) appColors.primaryAccent.copy(alpha = 0.08f) else Color.Transparent,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .border(
+                                    width = if (isSel) 2.dp else 1.dp,
+                                    color = if (isSel) appColors.primaryAccent else cardBorder,
+                                    shape = RoundedCornerShape(8.dp)
+                                )
+                                .clickable { viewModel.setFontSizeScale(targetScale) }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = translate(label, language),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                fontFamily = activeFontFamily,
+                                color = textColor
+                            )
+
+                            RadioButton(
+                                selected = isSel,
+                                onClick = { viewModel.setFontSizeScale(targetScale) },
+                                colors = RadioButtonDefaults.colors(selectedColor = appColors.primaryAccent)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Section 3: Live Preview Across Display Places
+        Card(
+            colors = CardDefaults.cardColors(containerColor = cardBg),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, cardBorder),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = translate("Typography Live Preview Across Display Places", language),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = appColors.primaryAccent
+                )
+
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isDark) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, cardBorder),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "MD Finance App",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 15.sp,
-                        color = textColor
-                    )
-                    Text(
-                        text = "₹ 1,25,000.00",
-                        fontWeight = FontWeight.Black,
-                        fontSize = 20.sp,
-                        color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
-                    )
-                    Text(
-                        text = translate("This is a live preview of how the chosen text size fits inside lists and summaries.", language),
-                        fontSize = 12.sp,
-                        color = subTextColor
-                    )
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Display Place 1: App Header
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = translate("Header Title", language),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = subTextColor
+                            )
+                            Text(
+                                text = "MD Finance App",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 16.sp,
+                                fontFamily = activeFontFamily,
+                                color = textColor
+                            )
+                        }
+
+                        HorizontalDivider(color = cardBorder.copy(alpha = 0.5f))
+
+                        // Display Place 2: Financial Currency Metric
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = translate("Dashboard Collection", language),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = subTextColor
+                            )
+                            Text(
+                                text = "₹ 1,25,000.00",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 18.sp,
+                                fontFamily = activeFontFamily,
+                                color = if (isDark) Color(0xFF4ADE80) else Color(0xFF16A34A)
+                            )
+                        }
+
+                        HorizontalDivider(color = cardBorder.copy(alpha = 0.5f))
+
+                        // Display Place 3: Borrower List Item
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = translate("Customer List Item", language),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = subTextColor
+                            )
+                            Text(
+                                text = "S. Murugan (Route #101)",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                fontFamily = activeFontFamily,
+                                color = textColor
+                            )
+                            Text(
+                                text = translate("Week 12 • Paid ₹1,000", language),
+                                fontSize = 11.sp,
+                                fontFamily = activeFontFamily,
+                                color = subTextColor
+                            )
+                        }
+
+                        HorizontalDivider(color = cardBorder.copy(alpha = 0.5f))
+
+                        // Display Place 4: Badges & Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                color = Color(0xFF22C55E).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = "ACTIVE LOAN",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                    fontFamily = activeFontFamily,
+                                    color = Color(0xFF15803D),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+
+                            Button(
+                                onClick = {},
+                                colors = ButtonDefaults.buttonColors(containerColor = appColors.primaryAccent),
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = translate("Collect Instalment", language),
+                                    fontSize = 11.sp,
+                                    fontFamily = activeFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

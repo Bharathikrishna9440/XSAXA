@@ -664,6 +664,9 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private val _fontSizeScale = MutableStateFlow(prefs.getFloat("font_size_scale", 1.15f))
     val fontSizeScale = _fontSizeScale.asStateFlow()
 
+    private val _fontStyleKey = MutableStateFlow(prefs.getString("font_style_key", "SANS_SERIF") ?: "SANS_SERIF")
+    val fontStyleKey = _fontStyleKey.asStateFlow()
+
     private val _selectedTheme = MutableStateFlow("Sleek Slate")
     val selectedTheme = _selectedTheme.asStateFlow()
 
@@ -2616,6 +2619,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     fun setFontSizeScale(scale: Float) {
         _fontSizeScale.value = scale
         prefs.edit().putFloat("font_size_scale", scale).apply()
+        markDirty()
+    }
+
+    fun setFontStyleKey(key: String) {
+        _fontStyleKey.value = key
+        prefs.edit().putString("font_style_key", key).apply()
         markDirty()
     }
 
@@ -4891,6 +4900,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
             put("business_name", businessName.value)
             put("sms_paused", smsPaused.value)
             put("font_size_scale", fontSizeScale.value.toDouble())
+            put("font_style_key", fontStyleKey.value)
             put("sms_new_loan_template", smsNewLoanTemplate.value)
             put("sms_payment_template", smsPaymentTemplate.value)
             put("sms_reminder_template", smsReminderTemplate.value)
@@ -5276,6 +5286,13 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 val scale = prefsObj.getDouble("font_size_scale").toFloat()
                 edit.putFloat("font_size_scale", scale)
                 _fontSizeScale.value = scale
+            }
+            if (prefsObj.has("font_style_key")) {
+                val key = prefsObj.getString("font_style_key")
+                if (!key.isNullOrBlank()) {
+                    edit.putString("font_style_key", key)
+                    _fontStyleKey.value = key
+                }
             }
             if (prefsObj.has("sms_new_loan_template")) {
                 val t = prefsObj.getString("sms_new_loan_template")

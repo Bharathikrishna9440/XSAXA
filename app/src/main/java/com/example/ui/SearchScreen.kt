@@ -45,13 +45,14 @@ fun SearchScreen(
     val appColors = LocalAppThemeColors.current
     val language by viewModel.language.collectAsStateWithLifecycle()
     val fontSizeScale by viewModel.fontSizeScale.collectAsStateWithLifecycle()
+    val initialSearchText by viewModel.searchText.collectAsStateWithLifecycle()
     
     val allCustomers by viewModel.allCustomers.collectAsStateWithLifecycle()
     val allLoanCycles by viewModel.allLoanCycles.collectAsStateWithLifecycle()
     val activeLoanCycles by viewModel.activeLoanCycles.collectAsStateWithLifecycle()
     val allPayments by viewModel.allPayments.collectAsStateWithLifecycle()
 
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf(initialSearchText) }
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -62,7 +63,7 @@ fun SearchScreen(
 
     // Filter and map customers specifically for the chosen collection day
     val filteredOverviewList = remember(day, searchQuery, allCustomers, activeLoanCycles, allLoanCycles, allPayments) {
-        val baseList = getOverviewListForDay(
+        getOverviewListForDay(
             day = day,
             allCustomers = allCustomers,
             activeLoanCycles = activeLoanCycles,
@@ -71,7 +72,6 @@ fun SearchScreen(
             search = searchQuery,
             sortMode = "ROUTE" // keep route order / custom order sort
         )
-        baseList
     }
 
     val displayDayName = if (day.equals("Home", ignoreCase = true)) {
@@ -116,7 +116,10 @@ fun SearchScreen(
                     ) {
                         TextField(
                             value = searchQuery,
-                            onValueChange = { searchQuery = it },
+                            onValueChange = {
+                                searchQuery = it
+                                viewModel.updateSearchText(it)
+                            },
                             placeholder = {
                                 Text(
                                     text = "${translate("Search", language)} ($displayDayName)...",
@@ -151,7 +154,10 @@ fun SearchScreen(
 
                         // Clear query trigger
                         if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
+                            IconButton(onClick = {
+                                searchQuery = ""
+                                viewModel.updateSearchText("")
+                            }) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
                                     contentDescription = "Clear search query",
@@ -164,16 +170,16 @@ fun SearchScreen(
                 }
             }
         },
-        containerColor = Color.Black // Match fully sleek dark background from custom user screens
+        containerColor = Color(0xFFF1F5F9) // Light neutral grey for high contrast readability of cards
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color.Black)
+                .imePadding()
+                .background(Color(0xFFF1F5F9))
         ) {
             if (filteredOverviewList.isEmpty()) {
-                // High fidelity centered label matching exactly the uploaded screen shot: "No items"
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -182,10 +188,10 @@ fun SearchScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = translate("No items", language),
-                        color = Color.White.copy(alpha = 0.5f),
+                        text = if (searchQuery.isBlank()) translate("No customers in $displayDayName", language) else translate("No items", language),
+                        color = Color(0xFF64748B),
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.Normal,
+                        fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.testTag("search_no_items_text")
                     )
@@ -193,7 +199,7 @@ fun SearchScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(12.dp),
+                    contentPadding = PaddingValues(top = 12.dp, bottom = 120.dp, start = 12.dp, end = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     itemsIndexed(
@@ -216,7 +222,6 @@ fun SearchScreen(
                             onIndexClicked = {},
                             isScrolling = false,
                             onEditPaymentClicked = { activeLoanId ->
-                                // Safely handle payment edit redirection directly to Customer details screen for full operations
                                 viewModel.navigateTo(Screen.CustomerDetail(item.customer.id))
                             }
                         )

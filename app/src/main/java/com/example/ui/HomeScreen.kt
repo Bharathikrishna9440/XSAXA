@@ -307,6 +307,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                 state = scrollState,
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 80.dp)
@@ -427,29 +428,11 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                     ) {
-                            // Clickable Search Bar that navigates to dedicated Search screen
-                            Box(
-                                modifier = Modifier
-                                    .weight(1.0f)
-                                    .defaultMinSize(minHeight = 48.dp)
-                                    .background(Color.White, RoundedCornerShape(12.dp))
-                                    .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
-                                    .clickable { viewModel.navigateTo(Screen.Search(currentDayVal)) }
-                                    .padding(horizontal = 12.dp)
-                                    .testTag("search_customer_bar"),
-                                contentAlignment = Alignment.CenterStart
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Search,
-                                        contentDescription = "Search icon",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = Color.Black.copy(alpha = 0.6f)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                            // Active Live Search Bar
+                            OutlinedTextField(
+                                value = searchText,
+                                onValueChange = { viewModel.updateSearchText(it) },
+                                placeholder = {
                                     Text(
                                         text = translate("Search by name or phone...", language),
                                         fontSize = 12.sp,
@@ -457,8 +440,58 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
-                                }
-                            }
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = "Search icon",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = Color.Black.copy(alpha = 0.6f)
+                                    )
+                                },
+                                trailingIcon = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (searchText.isNotEmpty()) {
+                                            IconButton(
+                                                onClick = { viewModel.updateSearchText("") },
+                                                modifier = Modifier.size(28.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Clear,
+                                                    contentDescription = "Clear search",
+                                                    tint = Color.Black.copy(alpha = 0.7f),
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.navigateTo(Screen.Search(currentDayVal)) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.OpenInFull,
+                                                contentDescription = "Full Screen Search",
+                                                tint = appColors.primaryAccent,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White,
+                                    focusedBorderColor = appColors.primaryAccent,
+                                    unfocusedBorderColor = Color(0xFFE2E8F0),
+                                    focusedTextColor = Color.Black,
+                                    unfocusedTextColor = Color.Black
+                                ),
+                                modifier = Modifier
+                                    .weight(1.0f)
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .testTag("search_customer_bar")
+                            )
 
                             // Add Customer Button
                             if (currentUserRole != "USER") Button(
@@ -3318,8 +3351,8 @@ fun getOverviewListForDay(
                     phoneDigits.contains(tokenDigits) || 
                     phone2Digits.contains(tokenDigits)
                 )
-                val matchesOrder = orderStr == token || idStr == token
-                val matchesLoan = activeLoanIds.any { it == token }
+                val matchesOrder = orderStr.contains(token) || idStr.contains(token)
+                val matchesLoan = activeLoanIds.any { it.contains(token) }
 
                 matchesName || matchesCity || matchesGroup || matchesPhoneRaw || matchesPhoneDigits || matchesOrder || matchesLoan
             }
