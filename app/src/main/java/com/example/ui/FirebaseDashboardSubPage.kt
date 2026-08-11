@@ -573,7 +573,7 @@ fun FirebaseDashboardSubPage(
                         onValueChange = {},
                         readOnly = true,
                         singleLine = true,
-                        textStyle = LocalTextStyle.current.copy(fontSize = 11.sp),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = {

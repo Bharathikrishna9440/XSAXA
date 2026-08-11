@@ -432,10 +432,11 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             OutlinedTextField(
                                 value = searchText,
                                 onValueChange = { viewModel.updateSearchText(it) },
+                                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                                 placeholder = {
                                     Text(
                                         text = translate("Search by name or phone...", language),
-                                        fontSize = 12.sp,
+                                        fontSize = 15.sp,
                                         color = Color.Black.copy(alpha = 0.5f),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -1613,8 +1614,8 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
                     BasicTextField(
                         value = inputYesterdayCash,
                         onValueChange = { inputYesterdayCash = it.filter { c -> c.isDigit() } },
-                        textStyle = TextStyle(
-                            fontSize = 13.sp,
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black,
                             textAlign = TextAlign.End
@@ -1802,8 +1803,8 @@ fun CashBalanceBoard(viewModel: FinanceViewModel, language: String) {
                             BasicTextField(
                                 value = inputActualCash,
                                 onValueChange = { inputActualCash = it.filter { c -> c.isDigit() } },
-                                textStyle = TextStyle(
-                                    fontSize = 13.sp,
+                                textStyle = LocalTextStyle.current.copy(
+                                    fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.Black,
                                     textAlign = TextAlign.End

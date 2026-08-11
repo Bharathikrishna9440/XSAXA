@@ -388,7 +388,10 @@ fun WeeklyFinanceApp(
     CompositionLocalProvider(
         LocalAppThemeColors provides colors,
         com.example.ui.theme.LocalAppFontFamily provides appFontFamily,
-        LocalTextStyle provides androidx.compose.ui.text.TextStyle(fontFamily = appFontFamily),
+        LocalTextStyle provides androidx.compose.ui.text.TextStyle(
+            fontFamily = appFontFamily,
+            fontSize = 16.sp
+        ),
         LocalDensity provides Density(
             density = currentDensity.density,
             fontScale = coercedFontScale

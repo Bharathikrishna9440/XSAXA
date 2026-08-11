@@ -518,7 +518,7 @@ fun BulkEntryScreen(
                                             onValueChange = { newVal -> weekStates[customerId] = newVal.filter { c -> c.isDigit() } },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             textStyle = LocalTextStyle.current.copy(
-                                                fontSize = 13.sp,
+                                                fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 textAlign = TextAlign.Center,
                                                 color = Color.Black
@@ -546,7 +546,7 @@ fun BulkEntryScreen(
                                             onValueChange = { newVal -> amountStates[customerId] = newVal.filter { c -> c.isDigit() } },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             textStyle = LocalTextStyle.current.copy(
-                                                fontSize = 14.sp,
+                                                fontSize = 16.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 textAlign = TextAlign.End,
                                                 color = Color.Black
@@ -656,7 +656,7 @@ fun BulkEntryScreen(
                                         OutlinedTextField(
                                             value = principalVal,
                                             onValueChange = { newVal -> principalStates[customerId] = newVal.filter { it.isDigit() } },
-                                            label = { Text(translate("Principal (₹)", language), fontSize = 11.sp) },
+                                            label = { Text(translate("Principal (₹)", language), fontSize = 13.sp) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             singleLine = true,
                                             modifier = Modifier.weight(1f).height(64.dp),
@@ -668,12 +668,12 @@ fun BulkEntryScreen(
                                                 focusedContainerColor = Color.White,
                                                 unfocusedContainerColor = Color.White
                                             ),
-                                            textStyle = LocalTextStyle.current.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                                         )
                                         OutlinedTextField(
                                             value = interestVal,
                                             onValueChange = { newVal -> interestStates[customerId] = newVal.filter { it.isDigit() } },
-                                            label = { Text(translate("Interest (₹)", language), fontSize = 11.sp) },
+                                            label = { Text(translate("Interest (₹)", language), fontSize = 13.sp) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             singleLine = true,
                                             modifier = Modifier.weight(1f).height(64.dp),
@@ -685,7 +685,7 @@ fun BulkEntryScreen(
                                                 focusedContainerColor = Color.White,
                                                 unfocusedContainerColor = Color.White
                                             ),
-                                            textStyle = LocalTextStyle.current.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                                         )
                                     }
                                 }

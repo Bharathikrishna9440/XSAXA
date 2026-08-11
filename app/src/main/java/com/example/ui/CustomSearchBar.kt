@@ -28,7 +28,7 @@ fun CustomSearchBar(
         value = searchText,
         onValueChange = onSearchTextChange,
         singleLine = true,
-        textStyle = TextStyle(fontSize = 14.sp, color = Color.Black),
+        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
         modifier = modifier
             .background(Color.White, RoundedCornerShape(12.dp))
             .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp)),
@@ -53,7 +53,7 @@ fun CustomSearchBar(
                     if (searchText.isEmpty()) {
                         Text(
                             text = translate("Search by name or phone...", language),
-                            fontSize = 12.sp,
+                            fontSize = 15.sp,
                             color = Color.Black.copy(alpha = 0.6f),
                             maxLines = 1,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis

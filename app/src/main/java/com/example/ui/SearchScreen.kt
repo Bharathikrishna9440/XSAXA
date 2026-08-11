@@ -124,12 +124,12 @@ fun SearchScreen(
                                 Text(
                                     text = "${translate("Search", language)} ($displayDayName)...",
                                     color = Color.White.copy(alpha = 0.5f),
-                                    fontSize = 15.sp
+                                    fontSize = 16.sp
                                 )
                             },
                             textStyle = LocalTextStyle.current.copy(
                                 color = Color.White,
-                                fontSize = 16.sp
+                                fontSize = 17.sp
                             ),
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
