@@ -624,6 +624,7 @@ fun BusinessUpiSubPage(
                 label = { Text("Business Name Signal Title (SMS footer)", fontSize = 11.sp) },
                 placeholder = { Text("Example: Muneeswaran Finance", fontSize = 11.sp) },
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,
@@ -643,6 +644,7 @@ fun BusinessUpiSubPage(
                 label = { Text("Merchant UPI ID (for QR codes and SMS formats)", fontSize = 11.sp) },
                 placeholder = { Text("Example: 9440736893@ptyes", fontSize = 11.sp) },
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,
@@ -676,6 +678,7 @@ fun BusinessUpiSubPage(
                 placeholder = { Text("TITLE=COLLECTION STATEMENT REPORT\nFOOTER=Please retain this statement for your verification.\nCOLOR_START=#0F172A\nCOLOR_END=#1E1B4B\nTHEME_BORDER_COLOR=#4F46E5", fontSize = 11.sp) },
                 minLines = 4,
                 maxLines = 8,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,

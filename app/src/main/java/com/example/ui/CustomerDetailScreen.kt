@@ -636,6 +636,7 @@ fun CustomerDetailScreen(
                         onValueChange = { upiIdToPay = it },
                         label = { Text(translate("Customer UPI ID (VPA)", language)) },
                         singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
@@ -873,6 +874,7 @@ fun CustomerDetailScreen(
                         },
                         label = { Text("Amount Collected (₹)", color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -894,6 +896,7 @@ fun CustomerDetailScreen(
                         },
                         label = { Text("Week Number", color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -915,6 +918,7 @@ fun CustomerDetailScreen(
                         onValueChange = {},
                         label = { Text("Payment Date & Time", color = Color.Gray) },
                         readOnly = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,

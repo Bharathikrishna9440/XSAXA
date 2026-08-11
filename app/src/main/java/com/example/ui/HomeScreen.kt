@@ -907,6 +907,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         placeholder = { Text("E.g. 1") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.White),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
@@ -1184,6 +1185,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         },
                         label = { Text(translate("Amount Collected (₹)", language), color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -1201,6 +1203,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         },
                         label = { Text(translate("Week Number", language), color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -1217,6 +1220,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         onValueChange = {},
                         label = { Text(translate("Collection Date & Time", language), color = Color.Gray) },
                         readOnly = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,

@@ -850,6 +850,7 @@ fun SettingsScreen(viewModel: FinanceViewModel) {
                     label = { Text(translate("New Group Name", language), color = Color.Gray) },
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.Black,
                         unfocusedTextColor = Color.Black,

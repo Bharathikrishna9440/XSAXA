@@ -152,6 +152,7 @@ fun RecordPaymentScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp),
                         singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black, unfocusedTextColor = Color.Black,
                             focusedLabelColor = Color.Black, unfocusedLabelColor = Color.Black,
@@ -170,6 +171,7 @@ fun RecordPaymentScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp),
                         singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black, unfocusedTextColor = Color.Black,
                             focusedLabelColor = Color.Black, unfocusedLabelColor = Color.Black,
@@ -201,6 +203,7 @@ fun RecordPaymentScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.Black,
                         unfocusedTextColor = Color.Black,
@@ -239,6 +242,7 @@ fun RecordPaymentScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.Black,
                         unfocusedTextColor = Color.Black,

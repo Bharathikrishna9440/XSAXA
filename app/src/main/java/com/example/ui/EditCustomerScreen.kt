@@ -93,6 +93,7 @@ fun EditCustomerScreen(
                 },
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,
@@ -123,6 +124,7 @@ fun EditCustomerScreen(
                 shape = RoundedCornerShape(8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,
@@ -155,6 +157,7 @@ fun EditCustomerScreen(
                     shape = RoundedCornerShape(8.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.Black,
                         unfocusedTextColor = Color.Black,
@@ -175,6 +178,7 @@ fun EditCustomerScreen(
                 label = { Text(translate("City", language)) },
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedTextColor = Color.Black,
                     unfocusedTextColor = Color.Black,

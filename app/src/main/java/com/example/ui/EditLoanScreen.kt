@@ -215,6 +215,7 @@ fun EditLoanScreen(
                         label = { Text("Cash Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = blackTextFieldColors,
                         modifier = Modifier.weight(1f)
                     )
@@ -238,6 +239,7 @@ fun EditLoanScreen(
                         label = { Text("UPI Principal (₹)") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(8.dp), singleLine = true,
+                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                         colors = blackTextFieldColors,
                         modifier = Modifier.weight(1f)
                     )
@@ -266,6 +268,7 @@ fun EditLoanScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                     colors = blackTextFieldColors,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -282,6 +285,7 @@ fun EditLoanScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -309,6 +313,7 @@ fun EditLoanScreen(
                         Text("Actual Cash Disbursed to Client: ₹${actual.toLong()}", color = if (actual < 0) Color.Red else Color.Gray)
                     }
                 },
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth().testTag("loan_deduction_input")
             )
@@ -325,6 +330,7 @@ fun EditLoanScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -353,6 +359,7 @@ fun EditLoanScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true,
+                    textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                     colors = blackTextFieldColors,
                     modifier = Modifier.weight(1f)
                 )
@@ -373,6 +380,7 @@ fun EditLoanScreen(
                             enabled = false,
                             label = { Text("Disbursal Mode") },
                             shape = RoundedCornerShape(8.dp),
+                            textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 disabledTextColor = if (disbursalMode == "Cash") Color(0xFF15803D) else Color(0xFF1D4ED8),
                                 disabledContainerColor = if (disbursalMode == "Cash") Color(0xFFDCFCE7) else Color(0xFFDBEAFE),
@@ -394,6 +402,7 @@ fun EditLoanScreen(
                 placeholder = { Text("Remarks details") },
                 shape = RoundedCornerShape(8.dp),
                 singleLine = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = blackTextFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -406,6 +415,7 @@ fun EditLoanScreen(
                 onValueChange = {},
                 label = { Text("Date & Time of Disbursal") },
                 readOnly = true,
+                textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
                 colors = blackTextFieldColors,
                 modifier = Modifier
                     .fillMaxWidth()
