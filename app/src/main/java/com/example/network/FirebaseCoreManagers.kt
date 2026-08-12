@@ -119,10 +119,10 @@ object FirebaseConnectionManager {
      */
     private fun enableKeepSynced() {
         try {
-            // Forces the database client to maintain a local copy of data automatically
-            database.reference.keepSynced(true)
+            val uid = auth.currentUser?.uid ?: "anon_user"
+            database.getReference("users").child(uid).keepSynced(true)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to set disk persistence properties: ${e.message}")
+            Log.w(TAG, "Failed to set disk persistence properties: ${e.message}")
         }
     }
 

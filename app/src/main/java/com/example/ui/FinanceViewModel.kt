@@ -2832,6 +2832,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
     private suspend fun uploadCsvToFirebaseStorage(csvContent: String, isManual: Boolean): Pair<Boolean, String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
         try {
+            val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            if (auth.currentUser == null) {
+                try {
+                    com.google.android.gms.tasks.Tasks.await(auth.signInAnonymously())
+                } catch (e: Exception) {
+                    android.util.Log.w("FirebaseStorage", "Anonymous auth sign-in note: ${e.message}")
+                }
+            }
             val storage = com.google.firebase.storage.FirebaseStorage.getInstance(com.example.util.SecureConfig.firebaseStorageUrl)
             val sdf = java.text.SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", java.util.Locale.US)
             val formattedTime = sdf.format(java.util.Date())
@@ -2846,7 +2854,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
 
             Pair(true, "Firebase Storage bucket file saved: $fileName")
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.w("FirebaseStorage", "Firebase Storage upload note: ${e.message}")
             Pair(false, e.localizedMessage ?: "Firebase Storage upload error")
         }
     }
