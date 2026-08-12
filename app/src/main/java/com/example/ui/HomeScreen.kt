@@ -1185,7 +1185,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         },
                         label = { Text(translate("Amount Collected (₹)", language), color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -1203,7 +1203,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         },
                         label = { Text(translate("Week Number", language), color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -1220,7 +1220,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                         onValueChange = {},
                         label = { Text(translate("Collection Date & Time", language), color = Color.Gray) },
                         readOnly = true,
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -2417,50 +2417,24 @@ fun CustomerOverviewCard(
             // Sequence Re-order controls
             if (activeDay != "Home") {
                 if (showReorder) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .clickable { onIndexClicked() }
                     ) {
-                        IconButton(
-                            onClick = onMoveUp,
-                            modifier = Modifier.size(24.dp)
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowUp,
-                                contentDescription = "Move Up",
-                                tint = Color.Black
-                            )
-                        }
-                        Surface(
-                            color = Color(0xFFF1F5F9),
-                            shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "$displayIndex",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.Black
-                                )
-                            }
-                        }
-                        IconButton(
-                            onClick = onMoveDown,
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Move Down",
-                                tint = Color.Black
+                            Text(
+                                text = "$displayIndex",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
                             )
                         }
                     }

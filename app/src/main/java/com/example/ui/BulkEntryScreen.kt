@@ -518,7 +518,7 @@ fun BulkEntryScreen(
                                             onValueChange = { newVal -> weekStates[customerId] = newVal.filter { c -> c.isDigit() } },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             textStyle = LocalTextStyle.current.copy(
-                                                fontSize = 16.sp,
+                                                fontSize = 20.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 textAlign = TextAlign.Center,
                                                 color = Color.Black
@@ -546,7 +546,7 @@ fun BulkEntryScreen(
                                             onValueChange = { newVal -> amountStates[customerId] = newVal.filter { c -> c.isDigit() } },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             textStyle = LocalTextStyle.current.copy(
-                                                fontSize = 16.sp,
+                                                fontSize = 20.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 textAlign = TextAlign.End,
                                                 color = Color.Black

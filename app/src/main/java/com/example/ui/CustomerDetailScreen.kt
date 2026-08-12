@@ -737,7 +737,11 @@ fun CustomerDetailScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        val custDay = customer.collectionDay
                         viewModel.deleteCustomer(customer)
+                        if (custDay.isNotBlank()) {
+                            viewModel.selectDay(custDay)
+                        }
                         showDeleteCustomerDialog = false
                         viewModel.navigateBack()
                     },
@@ -874,7 +878,7 @@ fun CustomerDetailScreen(
                         },
                         label = { Text("Amount Collected (₹)", color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -896,7 +900,7 @@ fun CustomerDetailScreen(
                         },
                         label = { Text("Week Number", color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,
@@ -918,7 +922,7 @@ fun CustomerDetailScreen(
                         onValueChange = {},
                         label = { Text("Payment Date & Time", color = Color.Gray) },
                         readOnly = true,
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp, color = Color.Black),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.Black,
                             unfocusedTextColor = Color.Black,

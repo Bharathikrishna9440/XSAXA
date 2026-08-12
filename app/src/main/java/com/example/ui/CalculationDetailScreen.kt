@@ -434,13 +434,13 @@ fun CollectionDetailLayout(
                         value = editAmount,
                         onValueChange = { editAmount = it },
                         label = { Text(translate("Amount", language)) },
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number)
                     )
                     OutlinedTextField(
                         value = editNotes,
                         onValueChange = { editNotes = it },
-                        textStyle = LocalTextStyle.current.copy(fontSize = 16.sp),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         label = { Text(translate("Notes", language)) }
                     )
                 }

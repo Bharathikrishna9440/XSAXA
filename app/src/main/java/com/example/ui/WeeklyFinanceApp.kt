@@ -752,8 +752,12 @@ fun WeeklyFinanceApp(
                                                     Button(
                                                         onClick = {
                                                             showDeleteCustomerDialog = false
+                                                            val custDay = customer.collectionDay
                                                             viewModel.deleteCustomer(customer)
-                                                            viewModel.navigateToHome()
+                                                            if (custDay.isNotBlank()) {
+                                                                viewModel.selectDay(custDay)
+                                                            }
+                                                            viewModel.navigateBack()
                                                             Toast.makeText(context, "Deleted profile for ${customer.name}", Toast.LENGTH_SHORT).show()
                                                         },
                                                         colors = ButtonDefaults.buttonColors(containerColor = ColorLossRed)
