@@ -2383,17 +2383,6 @@ fun CustomerOverviewCard(
     onEditPaymentClicked: ((Int) -> Unit)? = null,
     hasPaymentInPast2Days: Boolean? = null
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "shake")
-    val translationX by infiniteTransition.animateFloat(
-        initialValue = -3f,
-        targetValue = 3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(120, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "x"
-    )
-
     val appColors = LocalAppThemeColors.current
     val context = LocalContext.current
     val currentUserRole by viewModel.currentUserRole.collectAsStateWithLifecycle()
@@ -2624,7 +2613,6 @@ fun CustomerOverviewCard(
                                                      !actualHasPaymentInPast2Days
 
                                 val showRedMultiple = needsAttention && isCustomerCollectionDayToday
-                                val shakeOffset = if (showRedMultiple) translationX else 0f
 
                                 if (todayPaidAmt != null) {
                                     Text(
@@ -2647,68 +2635,53 @@ fun CustomerOverviewCard(
                                          cal.set(Calendar.MILLISECOND, 0)
                                          cal.timeInMillis
                                      }))
-                                     if (isCreatedToday && isCurrentDayMyDay) {
-                                         Text(
-                                             text = "₹${CurrencyFormatter.format(totalAmt)}",
-                                             color = Color(0xFFFF5722),
-                                             fontWeight = FontWeight.ExtraBold,
-                                             fontSize = 14.sp,
-                                             modifier = Modifier
-                                                 .padding(horizontal = 4.dp, vertical = 6.dp)
-                                                 .clickable { onReceiveClicked(activeLoan.id) }
-                                         )
-                                     } else {
-                                         Column(
-                                             horizontalAlignment = Alignment.CenterHorizontally,
-                                             verticalArrangement = Arrangement.Center,
-                                             modifier = Modifier.padding(start = 4.dp)
-                                         ) {
-                                             if (showRedMultiple) {
-                                                 Box(
-                                                     modifier = Modifier
-                                                         .size(24.dp)
-                                                          .background(Color.Red, CircleShape)
-                                                         .clickable {
-                                                             viewModel.recordWeeklyPayment(
-                                                                 loanCycleId = activeLoan.id,
-                                                                 amount = 0.0,
-                                                                 weekNum = (viewModel.allPayments.value.filter { it.loanCycleId == activeLoan.id && it.status == "ACTIVE" && it.amountPaid > 0.0 && it.weekNumber > 0 }.maxOfOrNull { it.weekNumber } ?: 0) + 1,
-                                                                 notes = "UNPAID"
-                                                             )
-                                                         },
-                                                     contentAlignment = Alignment.Center
-                                                 ) {
-                                                     Text(
-                                                         text = "×",
-                                                         color = Color.White,
-                                                         fontSize = 15.sp,
-                                                          fontWeight = FontWeight.Bold,
-                                                          modifier = Modifier
-                                                     )
-                                                 }
-                                                 Spacer(modifier = Modifier.height(3.dp))
-                                             }
-                                        Button(
-                                            onClick = { onReceiveClicked(activeLoan.id) },
-                                            colors = ButtonDefaults.buttonColors(containerColor = ColorGainGreen),
-                                            shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    if (isCreatedToday && isCurrentDayMyDay) {
+                                        Text(
+                                            text = "₹${CurrencyFormatter.format(totalAmt)}",
+                                            color = Color(0xFFFF5722),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 14.sp,
                                             modifier = Modifier
-                                                .testTag("quick_received_payment_${item.customer.id}_${activeLoan.id}").then(if (currentUserRole == "USER") Modifier.requiredSize(0.dp) else Modifier)
-                                                .graphicsLayer {
-                                                    this.translationX = shakeOffset
-                                                }
-                                                .defaultMinSize(minWidth = 55.dp, minHeight = 28.dp)
-                                                .padding(start = 4.dp)
+                                                .padding(horizontal = 4.dp, vertical = 6.dp)
+                                                .clickable { onReceiveClicked(activeLoan.id) }
+                                        )
+                                    } else {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center,
+                                            modifier = Modifier.padding(start = 4.dp)
                                         ) {
-                                            Text(
-                                                text = "+ GOT",
-                                                color = Color.White,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 11.sp,
-                                                maxLines = 1
+                                            if (showRedMultiple) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                         .background(Color.Red, CircleShape)
+                                                        .clickable {
+                                                            viewModel.recordWeeklyPayment(
+                                                                loanCycleId = activeLoan.id,
+                                                                amount = 0.0,
+                                                                weekNum = (viewModel.allPayments.value.filter { it.loanCycleId == activeLoan.id && it.status == "ACTIVE" && it.amountPaid > 0.0 && it.weekNumber > 0 }.maxOfOrNull { it.weekNumber } ?: 0) + 1,
+                                                                notes = "UNPAID"
+                                                            )
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "×",
+                                                        color = Color.White,
+                                                        fontSize = 15.sp,
+                                                         fontWeight = FontWeight.Bold,
+                                                         modifier = Modifier
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(3.dp))
+                                            }
+                                            AttentionShakingGotButton(
+                                                shouldShake = showRedMultiple,
+                                                testTag = "quick_received_payment_${item.customer.id}_${activeLoan.id}",
+                                                modifier = if (currentUserRole == "USER") Modifier.requiredSize(0.dp) else Modifier,
+                                                onClick = { onReceiveClicked(activeLoan.id) }
                                             )
-                                        }
                                         }
                                     }
                                 }
@@ -3357,6 +3330,67 @@ fun getOverviewListForDay(
                 .thenByDescending { it.lastPaymentDate ?: 0L }
         )
         else -> filtered
+    }
+}
+
+@Composable
+private fun AttentionShakingGotButton(
+    modifier: Modifier = Modifier,
+    shouldShake: Boolean,
+    testTag: String,
+    onClick: () -> Unit
+) {
+    if (shouldShake) {
+        val infiniteTransition = rememberInfiniteTransition(label = "shake")
+        val translationX = infiniteTransition.animateFloat(
+            initialValue = -3f,
+            targetValue = 3f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(120, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "x"
+        )
+        Button(
+            onClick = onClick,
+            colors = ButtonDefaults.buttonColors(containerColor = ColorGainGreen),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+            modifier = modifier
+                .testTag(testTag)
+                .graphicsLayer {
+                    this.translationX = translationX.value
+                }
+                .defaultMinSize(minWidth = 55.dp, minHeight = 28.dp)
+                .padding(start = 4.dp)
+        ) {
+            Text(
+                text = "+ GOT",
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 11.sp,
+                maxLines = 1
+            )
+        }
+    } else {
+        Button(
+            onClick = onClick,
+            colors = ButtonDefaults.buttonColors(containerColor = ColorGainGreen),
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+            modifier = modifier
+                .testTag(testTag)
+                .defaultMinSize(minWidth = 55.dp, minHeight = 28.dp)
+                .padding(start = 4.dp)
+        ) {
+            Text(
+                text = "+ GOT",
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 11.sp,
+                maxLines = 1
+            )
+        }
     }
 }
 

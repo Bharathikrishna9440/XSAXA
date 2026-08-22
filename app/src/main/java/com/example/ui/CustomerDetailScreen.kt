@@ -1531,24 +1531,22 @@ fun CustomerDetailScreen(
                 }
             }
 
-            // Animated slide settings notification tag below the box using rememberInfiniteTransition to avoid leaking memory/loops
-            val infiniteTransition = rememberInfiniteTransition(label = "slide_transition")
-            val slideOffsetFloat by infiniteTransition.animateFloat(
-                initialValue = -8f,
-                targetValue = 8f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 2000, easing = EaseInOutSine),
-                    repeatMode = RepeatMode.Reverse
-                ),
-                label = "slide"
-            )
-            val slideOffset = slideOffsetFloat.dp
-
             if ((customer.smsWeeklyReminder || customer.smsConfirmationOfEntry) && customer.phone.isNotBlank()) {
+                val infiniteTransition = rememberInfiniteTransition(label = "slide_transition")
+                val slideOffsetFloat = infiniteTransition.animateFloat(
+                    initialValue = -8f,
+                    targetValue = 8f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 2000, easing = EaseInOutSine),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "slide"
+                )
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .graphicsLayer { translationX = slideOffset.toPx() }
+                        .graphicsLayer { translationX = slideOffsetFloat.value.dp.toPx() }
                         .padding(vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
