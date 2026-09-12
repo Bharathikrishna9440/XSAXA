@@ -353,6 +353,7 @@ fun CustomerDetailScreen(
     val upiLinkVal by viewModel.upiLink.collectAsStateWithLifecycle()
     val language by viewModel.language.collectAsStateWithLifecycle()
     val currentUserRole by viewModel.currentUserRole.collectAsStateWithLifecycle()
+    val allPayments by viewModel.allPayments.collectAsStateWithLifecycle()
     
     val customer = customerList.find { it.id == customerId }
     if (customer == null) {
@@ -825,11 +826,33 @@ fun CustomerDetailScreen(
 
     if (editingPayment != null) {
         val entry = editingPayment!!
-        var amtText by remember(entry.id) { mutableStateOf(entry.amountPaid.toLong().toString()) }
-        var wkNumText by remember(entry.id) { mutableStateOf(entry.weekNumber.toString()) }
+        val initialCalculatedWeek = remember(entry.id, entry.weekNumber, entry.loanCycleId) {
+            if (entry.weekNumber > 0) {
+                entry.weekNumber
+            } else {
+                val cyclePayments = allPayments.filter {
+                    it.loanCycleId == entry.loanCycleId &&
+                    it.status.uppercase() != "DELETED" &&
+                    it.id != entry.id &&
+                    it.amountPaid > 0.0 &&
+                    it.weekNumber > 0
+                }
+                (cyclePayments.maxOfOrNull { it.weekNumber } ?: 0) + 1
+            }
+        }
+        var amtText by remember(entry.id) { 
+            mutableStateOf(if (entry.amountPaid <= 0.0) "" else entry.amountPaid.toLong().toString()) 
+        }
+        var wkNumText by remember(entry.id) { mutableStateOf(initialCalculatedWeek.toString()) }
         var noteText by remember(entry.id) { 
-            val initialNote = entry.notes.ifBlank { "Cash" }
-            mutableStateOf(if (initialNote.equals("Online", ignoreCase = true)) "UPI" else initialNote)
+            val initialNote = if (entry.notes.equals("UNPAID", ignoreCase = true) || entry.notes.isBlank()) {
+                "Cash"
+            } else if (entry.notes.equals("Online", ignoreCase = true)) {
+                "UPI"
+            } else {
+                entry.notes
+            }
+            mutableStateOf(initialNote)
         }
         
         val sdfEdit = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
@@ -1001,29 +1024,33 @@ fun CustomerDetailScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        val parsedAmt = amtText.toDoubleOrNull()
-                        val parsedWk = wkNumText.toIntOrNull()
-                        if (parsedAmt == null || parsedAmt <= 0.0) {
-                            Toast.makeText(context, "Please enter a valid collection amount greater than 0.", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-                        if (parsedWk == null || parsedWk <= 0) {
-                            Toast.makeText(context, "Please enter a valid week number greater than 0.", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
+                        val parsedAmt = amtText.toDoubleOrNull() ?: 0.0
+                        val parsedWk = wkNumText.toIntOrNull()?.takeIf { it > 0 } ?: initialCalculatedWeek
                         val parsedDt = try {
                             sdfEdit.parse(dateText)?.time ?: entry.paymentDate
                         } catch (e: Exception) {
                             entry.paymentDate
                         }
-                        viewModel.editWeeklyPayment(
-                            paymentId = entry.id,
-                            loanCycleId = entry.loanCycleId,
-                            amount = parsedAmt,
-                            weekNum = parsedWk,
-                            paymentDate = parsedDt,
-                            notes = noteText
-                        )
+                        if (parsedAmt <= 0.0) {
+                            viewModel.editWeeklyPayment(
+                                paymentId = entry.id,
+                                loanCycleId = entry.loanCycleId,
+                                amount = 0.0,
+                                weekNum = parsedWk,
+                                paymentDate = parsedDt,
+                                notes = "UNPAID"
+                            )
+                        } else {
+                            val finalNote = if (noteText.equals("UNPAID", ignoreCase = true) || noteText.isBlank()) "Cash" else noteText
+                            viewModel.editWeeklyPayment(
+                                paymentId = entry.id,
+                                loanCycleId = entry.loanCycleId,
+                                amount = parsedAmt,
+                                weekNum = parsedWk,
+                                paymentDate = parsedDt,
+                                notes = finalNote
+                            )
+                        }
                         editingPayment = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ColorGainGreen)
@@ -1041,8 +1068,6 @@ fun CustomerDetailScreen(
             }
         )
     }
-
-    val allPayments by viewModel.allPayments.collectAsStateWithLifecycle()
 
     val liveLoanCycles = remember(loanCycles, allPayments) {
         loanCycles.map { lc ->

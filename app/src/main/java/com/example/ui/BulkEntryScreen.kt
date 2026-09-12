@@ -121,7 +121,7 @@ fun BulkEntryScreen(
                 }
 
                 val cyclePayments = allPayments.filter { it.loanCycleId == activeLoan.id && it.status == "ACTIVE" && it.amountPaid > 0.0 && it.weekNumber > 0 }
-                val nextSuggestWeek = if (todayPayment != null) {
+                val nextSuggestWeek = if (todayPayment != null && todayPayment.weekNumber > 0) {
                     todayPayment.weekNumber
                 } else {
                     (cyclePayments.maxOfOrNull { it.weekNumber } ?: 0) + 1

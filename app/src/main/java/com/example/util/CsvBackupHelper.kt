@@ -105,7 +105,7 @@ object CsvBackupHelper {
                     val cyclePayments = validPayments.filter { it.loanCycleId == cycle.id }
 
                     for (w in 1..30) {
-                        val p = cyclePayments.find { it.weekNumber == w }
+                        val p = cyclePayments.find { it.weekNumber == w && it.amountPaid > 0.0 && it.status.uppercase() != "DELETED" }
                         if (p != null) {
                             var pDate = dateTimeFormat.format(Date(p.paymentDate))
                             val metaList = mutableListOf<String>()

@@ -4010,7 +4010,14 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val appCtx = getApplication<Application>()
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val actualWeekNum = if (amount <= 0.0 || notes == "UNPAID") 0 else weekNum
+            val actualWeekNum = if (weekNum > 0) {
+                weekNum
+            } else {
+                val cyclePayments = allPayments.value.filter { 
+                    it.loanCycleId == loanCycleId && it.status.uppercase() != "DELETED" && it.amountPaid > 0.0 && it.weekNumber > 0 
+                }
+                (cyclePayments.maxOfOrNull { it.weekNumber } ?: 0) + 1
+            }
             val wp = WeeklyPayment(
                 loanCycleId = loanCycleId,
                 amountPaid = amount,
@@ -4036,12 +4043,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                             customerId = customer.id,
                             customerName = customer.name,
                             actionType = "RECORD_PAYMENT",
-                            actionDescription = "Recorded ₹$amount payment for week $weekNum of ${customer.name}",
+                            actionDescription = "Recorded ₹$amount payment for week $actualWeekNum of ${customer.name}",
                             previousDataJson = paymentId.toString()
                         )
                     )
-                    if (customer.smsConfirmationOfEntry) {
-                        triggerPaymentEntrySms(appCtx, customer, loan, amount, weekNum, customSmsPhone ?: customer.phone)
+                    if (customer.smsConfirmationOfEntry && amount > 0.0) {
+                        triggerPaymentEntrySms(appCtx, customer, loan, amount, actualWeekNum, customSmsPhone ?: customer.phone)
                     }
                     createOrUpdateCustomerFiles(customer.id)
                 }
@@ -4094,7 +4101,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                             previousDataJson = previousJson
                         )
                     )
-                    if (customer.smsConfirmationOfEntry) {
+                    if (customer.smsConfirmationOfEntry && amount > 0.0) {
                         triggerPaymentEntrySms(appCtx, customer, loan, amount, weekNum)
                     }
                 }

@@ -450,34 +450,21 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                                         tint = Color.Black.copy(alpha = 0.6f)
                                     )
                                 },
-                                trailingIcon = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (searchText.isNotEmpty()) {
-                                            IconButton(
-                                                onClick = { viewModel.updateSearchText("") },
-                                                modifier = Modifier.size(28.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Clear,
-                                                    contentDescription = "Clear search",
-                                                    tint = Color.Black.copy(alpha = 0.7f),
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
+                                trailingIcon = if (searchText.isNotEmpty()) {
+                                    {
                                         IconButton(
-                                            onClick = { viewModel.navigateTo(Screen.Search(currentDayVal)) },
+                                            onClick = { viewModel.updateSearchText("") },
                                             modifier = Modifier.size(28.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.OpenInFull,
-                                                contentDescription = "Full Screen Search",
-                                                tint = appColors.primaryAccent,
+                                                imageVector = Icons.Default.Clear,
+                                                contentDescription = "Clear search",
+                                                tint = Color.Black.copy(alpha = 0.7f),
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
                                     }
-                                },
+                                } else null,
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
@@ -1014,14 +1001,25 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "₹${CurrencyFormatter.format(itemEntry.amountPaid)}",
+                                        text = if (itemEntry.amountPaid <= 0.0) "₹0 (UNPAID)" else "₹${CurrencyFormatter.format(itemEntry.amountPaid)}",
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 16.sp,
-                                        color = ColorGainGreen
+                                        color = if (itemEntry.amountPaid <= 0.0) ColorLossRed else ColorGainGreen
                                     )
                                     Spacer(modifier = Modifier.height(2.dp))
+                                    val displayWeekNum = if (itemEntry.weekNumber > 0) {
+                                        itemEntry.weekNumber
+                                    } else {
+                                        (allPayments.filter {
+                                            it.loanCycleId == itemEntry.loanCycleId &&
+                                            it.status.uppercase() != "DELETED" &&
+                                            it.id != itemEntry.id &&
+                                            it.amountPaid > 0.0 &&
+                                            it.weekNumber > 0
+                                        }.maxOfOrNull { it.weekNumber } ?: 0) + 1
+                                    }
                                     Text(
-                                        text = "${translate("Week", language)} ${itemEntry.weekNumber} • $modeLabel • ${timeFormat.format(java.util.Date(itemEntry.paymentDate))}",
+                                        text = "${translate("Week", language)} $displayWeekNum • $modeLabel • ${timeFormat.format(java.util.Date(itemEntry.paymentDate))}",
                                         fontSize = 12.sp,
                                         color = Color.DarkGray
                                     )
@@ -1134,11 +1132,33 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
 
     if (editingPaymentTarget != null) {
         val entry = editingPaymentTarget!!
-        var amtText by remember(entry.id) { mutableStateOf(entry.amountPaid.toInt().toString()) }
-        var wkNumText by remember(entry.id) { mutableStateOf(entry.weekNumber.toString()) }
+        val initialCalculatedWeek = remember(entry.id, entry.weekNumber, entry.loanCycleId) {
+            if (entry.weekNumber > 0) {
+                entry.weekNumber
+            } else {
+                val cyclePayments = allPayments.filter {
+                    it.loanCycleId == entry.loanCycleId &&
+                    it.status.uppercase() != "DELETED" &&
+                    it.id != entry.id &&
+                    it.amountPaid > 0.0 &&
+                    it.weekNumber > 0
+                }
+                (cyclePayments.maxOfOrNull { it.weekNumber } ?: 0) + 1
+            }
+        }
+        var amtText by remember(entry.id) { 
+            mutableStateOf(if (entry.amountPaid <= 0.0) "" else entry.amountPaid.toInt().toString()) 
+        }
+        var wkNumText by remember(entry.id) { mutableStateOf(initialCalculatedWeek.toString()) }
         var noteText by remember(entry.id) {
-            val initialNote = entry.notes.ifBlank { "Cash" }
-            mutableStateOf(if (initialNote.equals("Online", ignoreCase = true)) "UPI" else initialNote)
+            val initialNote = if (entry.notes.equals("UNPAID", ignoreCase = true) || entry.notes.isBlank()) {
+                "Cash"
+            } else if (entry.notes.equals("Online", ignoreCase = true)) {
+                "UPI"
+            } else {
+                entry.notes
+            }
+            mutableStateOf(initialNote)
         }
         
         val sdfEdit = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
@@ -1184,6 +1204,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             amtText = input.filter { it.isDigit() }
                         },
                         label = { Text(translate("Amount Collected (₹)", language), color = Color.Gray) },
+                        placeholder = { Text("0", color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -1202,6 +1223,7 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                             wkNumText = input.filter { it.isDigit() }
                         },
                         label = { Text(translate("Week Number", language), color = Color.Gray) },
+                        placeholder = { Text(initialCalculatedWeek.toString(), color = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         textStyle = LocalTextStyle.current.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.Black),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -1285,20 +1307,33 @@ fun DashboardScreen(viewModel: FinanceViewModel) {
                 Button(
                     onClick = {
                         val parsedAmt = amtText.toDoubleOrNull() ?: 0.0
-                        val parsedWk = wkNumText.toIntOrNull() ?: 1
+                        val parsedWk = wkNumText.toIntOrNull()?.takeIf { it > 0 } ?: initialCalculatedWeek
                         val parsedDt = try {
                             sdfEdit.parse(dateText)?.time ?: entry.paymentDate
                         } catch (e: Exception) {
                             entry.paymentDate
                         }
-                        viewModel.editWeeklyPayment(
-                            paymentId = entry.id,
-                            loanCycleId = entry.loanCycleId,
-                            amount = parsedAmt,
-                            weekNum = parsedWk,
-                            paymentDate = parsedDt,
-                            notes = noteText
-                        )
+                        if (parsedAmt <= 0.0) {
+                            // If amt not recorded or 0 then consider no entry that is its a unpaid 0
+                            viewModel.editWeeklyPayment(
+                                paymentId = entry.id,
+                                loanCycleId = entry.loanCycleId,
+                                amount = 0.0,
+                                weekNum = parsedWk,
+                                paymentDate = parsedDt,
+                                notes = "UNPAID"
+                            )
+                        } else {
+                            val finalNote = if (noteText.equals("UNPAID", ignoreCase = true) || noteText.isBlank()) "Cash" else noteText
+                            viewModel.editWeeklyPayment(
+                                paymentId = entry.id,
+                                loanCycleId = entry.loanCycleId,
+                                amount = parsedAmt,
+                                weekNum = parsedWk,
+                                paymentDate = parsedDt,
+                                notes = finalNote
+                            )
+                        }
                         editingPaymentTarget = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = ColorGainGreen)
