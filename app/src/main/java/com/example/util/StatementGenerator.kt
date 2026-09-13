@@ -129,32 +129,6 @@ object StatementGenerator {
         
         canvas.drawText("Loan Summary", 435f, 245f, textPaint)
         
-        if (isClosedLoan) {
-            val badgePaint = Paint().apply {
-                color = 0xFFFEE2E2.toInt() // Soft red background
-                style = Paint.Style.FILL
-            }
-            val badgeBorderPaint = Paint().apply {
-                color = 0xFFEF4444.toInt() // Red border
-                style = Paint.Style.STROKE
-                strokeWidth = 2f
-            }
-            val badgeTextPaint = Paint().apply {
-                color = 0xFFDC2626.toInt() // Dark red text
-                textSize = 13f
-                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-                isAntiAlias = true
-                textAlign = Align.CENTER
-            }
-            val badgeRight = cardRight - 15f
-            val badgeLeft = badgeRight - 145f
-            val badgeTop = 222f
-            val badgeBottom = 254f
-            canvas.drawRoundRect(badgeLeft, badgeTop, badgeRight, badgeBottom, 8f, 8f, badgePaint)
-            canvas.drawRoundRect(badgeLeft, badgeTop, badgeRight, badgeBottom, 8f, 8f, badgeBorderPaint)
-            canvas.drawText("STATUS: CLOSED", (badgeLeft + badgeRight) / 2f, 243f, badgeTextPaint)
-        }
-        
         val amtPaid = payments.sumOf { it.amountPaid }.toLong()
         val totalContractVal = (activeLoan.loanAmount + activeLoan.interestAmount).toLong()
         val outstandingVal = if (isClosedLoan) 0L else maxOf(0L, totalContractVal - amtPaid)
@@ -229,7 +203,7 @@ object StatementGenerator {
                            p.notes.contains("GPay", ignoreCase = true) || 
                            p.notes.contains("Bank", ignoreCase = true)
             val pModeStr = if (isOnline) "UPI" else "Cash"
-            val weekLabel = if (p.weekNumber > 0) "Week ${p.weekNumber}" else "Week ${index + 1}"
+            val weekLabel = if (p.weekNumber > 0) p.weekNumber.toString() else (index + 1).toString()
             canvas.drawText(weekLabel, 60f, currentY, rowPaint)
             canvas.drawText(pDateStr, 190f, currentY, rowPaint)
             canvas.drawText("₹${p.amountPaid.toLong()}", 400f, currentY, boldRowPaint)
