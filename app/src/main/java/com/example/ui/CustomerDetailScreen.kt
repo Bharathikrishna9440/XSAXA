@@ -1087,6 +1087,240 @@ fun CustomerDetailScreen(
         ageMs < seventyTwoHoursMs
     }
 
+    val closedLoans = remember(liveLoanCycles, paidHistory) {
+        val nonDeleted = liveLoanCycles.filter { 
+            (it.status == "PAID" || it.status == "CLOSED") && it.status.uppercase() != "DELETED" 
+        }
+        if (paidHistory.isNotEmpty()) {
+            paidHistory
+        } else {
+            nonDeleted
+        }
+    }
+    val coroutineScope = rememberCoroutineScope()
+    var isGeneratingStatement by remember { mutableStateOf(false) }
+    var showStatementChooserDialog by remember { mutableStateOf(false) }
+
+    val generateAndShareStatement: (LoanCycle, Boolean) -> Unit = { targetLoan, isClosed ->
+        coroutineScope.launch {
+            try {
+                isGeneratingStatement = true
+                val loanPayments = allPayments.filter {
+                    it.loanCycleId == targetLoan.id &&
+                    it.status.uppercase() != "DELETED" &&
+                    it.amountPaid > 0.0
+                }.sortedBy { it.weekNumber }
+
+                val statementBitmap = StatementGenerator.generateCustomerStatementBitmap(
+                    context = context,
+                    businessName = viewModel.businessName.value,
+                    customerName = customer.name,
+                    collectionDay = customer.collectionDay,
+                    activeLoan = targetLoan,
+                    payments = loanPayments,
+                    themeName = viewModel.selectedTheme.value,
+                    customizationCode = viewModel.statementCustomizationCode.value,
+                    customerPhone = customer.phone,
+                    isClosedLoan = isClosed
+                )
+                shareStatementImageToWhatsapp(
+                    context = context,
+                    bitmap = statementBitmap,
+                    customerName = customer.name,
+                    phoneNumber = customer.phone,
+                    isClosedLoan = isClosed
+                )
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error generating statement: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isGeneratingStatement = false
+            }
+        }
+    }
+
+    if (showStatementChooserDialog) {
+        val targetActiveLoan = activeLoans.firstOrNull()
+        AlertDialog(
+            onDismissRequest = { showStatementChooserDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ListAlt,
+                        contentDescription = null,
+                        tint = Color(0xFFFBBF24),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Select Loan Statement",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorSlateDark
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "Choose which loan statement to generate and share for ${customer.name}:",
+                        fontSize = 13.sp,
+                        color = Color.DarkGray
+                    )
+
+                    // 1. Active Loan option
+                    if (targetActiveLoan != null) {
+                        val activeTotal = targetActiveLoan.loanAmount + targetActiveLoan.interestAmount
+                        val activePaid = targetActiveLoan.paidAmount
+                        val activeBal = maxOf(0.0, activeTotal - activePaid)
+                        Surface(
+                            onClick = {
+                                showStatementChooserDialog = false
+                                generateAndShareStatement(targetActiveLoan, false)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = ColorGainGreenLight.copy(alpha = 0.5f),
+                            border = BorderStroke(1.5.dp, ColorGainGreen),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("statement_option_active")
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "Active Loan",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            color = ColorSlateDark
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .background(ColorGainGreen, RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "ACTIVE",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Filled.Share,
+                                        contentDescription = null,
+                                        tint = ColorGainGreen,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Loan: ₹${CurrencyFormatter.format(targetActiveLoan.loanAmount)} • Balance: ₹${CurrencyFormatter.format(activeBal)}",
+                                    fontSize = 12.sp,
+                                    color = Color.DarkGray
+                                )
+                            }
+                        }
+                    }
+
+                    // 2. Closed Loan options
+                    closedLoans.forEachIndexed { index, closedCycle ->
+                        val closedLabel = if (closedLoans.size > 1) "Closed Loan ${index + 1}" else "Closed Loan"
+                        val disbursalDateStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(closedCycle.startDate))
+                        Surface(
+                            onClick = {
+                                showStatementChooserDialog = false
+                                generateAndShareStatement(closedCycle, true)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = Color(0xFFF1F5F9),
+                            border = BorderStroke(1.5.dp, Color(0xFF94A3B8)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("statement_option_closed_${closedCycle.id}")
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Text(
+                                            text = closedLabel,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            color = ColorSlateDark
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .background(ColorLossRed.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                                .border(1.dp, ColorLossRed.copy(alpha = 0.4f), RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "STATUS: CLOSED",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = ColorLossRed
+                                            )
+                                        }
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Filled.Share,
+                                        contentDescription = null,
+                                        tint = ColorSlateDark,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Loan: ₹${CurrencyFormatter.format(closedCycle.loanAmount)} ($disbursalDateStr) • Settled",
+                                    fontSize = 12.sp,
+                                    color = Color.DarkGray
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = { showStatementChooserDialog = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.DarkGray)
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     val customerLoanCycleIds = remember(loanCycles) { loanCycles.map { it.id }.toSet() }
     val customerPayments = allPayments.filter { it.loanCycleId in customerLoanCycleIds && it.status == "ACTIVE" }
 
@@ -1102,8 +1336,6 @@ fun CustomerDetailScreen(
     val nextCustomerName = if (hasNext) overviewList[currentIndex + 1].customer.name else null
 
     val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope()
-    var isGeneratingStatement by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Box(
@@ -1529,29 +1761,14 @@ fun CustomerDetailScreen(
                         lastModified = 0L
                     )
                     IconButton(onClick = {
-                        coroutineScope.launch {
-                            try {
-                                isGeneratingStatement = true
-                                val statementBitmap = StatementGenerator.generateCustomerStatementBitmap(
-                                    context = context,
-                                    businessName = viewModel.businessName.value,
-                                    customerName = customer.name,
-                                    collectionDay = customer.collectionDay,
-                                    activeLoan = defaultActiveLoanForStatement,
-                                    payments = if (defaultActiveLoanForStatement.id != -1) customerPayments.filter { it.loanCycleId == defaultActiveLoanForStatement.id } else emptyList(),
-                                    themeName = viewModel.selectedTheme.value,
-                                    customizationCode = viewModel.statementCustomizationCode.value,
-                                    customerPhone = customer.phone
-                                )
-                                shareStatementImageToWhatsapp(context, statementBitmap, customer.name, customer.phone)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error generating statement: ${e.message}", Toast.LENGTH_SHORT).show()
-                            } finally {
-                                isGeneratingStatement = false
-                            }
+                        if (closedLoans.isNotEmpty()) {
+                            showStatementChooserDialog = true
+                        } else {
+                            val targetLoan = activeLoans.firstOrNull() ?: defaultActiveLoanForStatement
+                            generateAndShareStatement(targetLoan, false)
                         }
                     }) {
-                        Icon(Icons.Filled.ListAlt, contentDescription = "Share Active Statement", tint = Color(0xFFFBBF24), modifier = Modifier.size(24.dp))
+                        Icon(Icons.Filled.ListAlt, contentDescription = "Share Customer Statement", tint = Color(0xFFFBBF24), modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -1687,27 +1904,7 @@ fun CustomerDetailScreen(
                                     onEditCycleClicked = { viewModel.navigateTo(Screen.EditLoan(targetActiveLoan.id)) },
                                     currentUserRole = currentUserRole,
                                     onShareClicked = {
-                                        coroutineScope.launch {
-                                            try {
-                                                isGeneratingStatement = true
-                                                val statementBitmap = StatementGenerator.generateCustomerStatementBitmap(
-                                                    context = context,
-                                                    businessName = viewModel.businessName.value,
-                                                    customerName = customer.name,
-                                                    collectionDay = customer.collectionDay,
-                                                    activeLoan = targetActiveLoan,
-                                                    payments = activePayments,
-                                                    themeName = viewModel.selectedTheme.value,
-                                                    customizationCode = viewModel.statementCustomizationCode.value,
-                                                    customerPhone = customer.phone
-                                                )
-                                                shareStatementImageToWhatsapp(context, statementBitmap, customer.name, customer.phone)
-                                            } catch (e: Exception) {
-                                                Toast.makeText(context, "Error generating statement: ${e.message}", Toast.LENGTH_SHORT).show()
-                                            } finally {
-                                                isGeneratingStatement = false
-                                            }
-                                        }
+                                        generateAndShareStatement(targetActiveLoan, false)
                                     }
                                 )
                             }
@@ -1749,6 +1946,7 @@ fun CustomerDetailScreen(
                             onEditPayment = { payment -> editingPayment = payment },
                             onDeletePayment = { payment -> deletingPaymentTarget = payment },
                             onAddPayment = { viewModel.navigateTo(Screen.RecordPayment(historicCycle.id)) },
+                            onShareClicked = { generateAndShareStatement(historicCycle, true) },
                             currentUserRole = currentUserRole,
                             loanLabel = loanLabel
                         )
@@ -2221,6 +2419,7 @@ fun HistoricLoanCard(
     onEditPayment: (WeeklyPayment) -> Unit,
     onDeletePayment: (WeeklyPayment) -> Unit,
     onAddPayment: () -> Unit,
+    onShareClicked: (() -> Unit)? = null,
     currentUserRole: String = "ADMIN",
     loanLabel: String = "Loan"
 ) {
@@ -2298,8 +2497,8 @@ fun HistoricLoanCard(
                     )
                 }
                 
-                // Top Right: Auto-deletion badge & Delete button
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Top Right: Auto-deletion badge, Share Statement & Delete button
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Box(
                         modifier = Modifier
                             .background(Color(0xFFFEF2F2), RoundedCornerShape(6.dp))
@@ -2312,6 +2511,11 @@ fun HistoricLoanCard(
                             fontWeight = FontWeight.Bold,
                             color = ColorLossRed
                         )
+                    }
+                    if (onShareClicked != null) {
+                        IconButton(onClick = onShareClicked, modifier = Modifier.size(32.dp)) {
+                            Icon(Icons.Filled.ListAlt, contentDescription = "Share Closed Statement", tint = Color(0xFFFBBF24), modifier = Modifier.size(18.dp))
+                        }
                     }
                     if (currentUserRole != "USER") {
                         IconButton(onClick = onDeleteLoan, modifier = Modifier.size(32.dp)) {

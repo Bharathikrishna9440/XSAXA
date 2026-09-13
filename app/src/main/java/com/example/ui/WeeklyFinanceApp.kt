@@ -121,11 +121,13 @@ fun shareStatementImageToWhatsapp(
     context: android.content.Context,
     bitmap: android.graphics.Bitmap,
     customerName: String,
-    phoneNumber: String?
+    phoneNumber: String?,
+    isClosedLoan: Boolean = false
 ) {
     try {
         val safeName = customerName.replace("[^a-zA-Z0-9]".toRegex(), "_")
-        val file = java.io.File(context.cacheDir, "Statement_${safeName}.png")
+        val filePrefix = if (isClosedLoan) "Statement_Closed_" else "Statement_"
+        val file = java.io.File(context.cacheDir, "${filePrefix}${safeName}.png")
         java.io.FileOutputStream(file).use { os ->
             bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, os)
         }
@@ -143,7 +145,11 @@ fun shareStatementImageToWhatsapp(
             }
         }
 
-        val text = "Outstanding statement for $customerName."
+        val text = if (isClosedLoan) {
+            "Account statement (Closed Loan) for $customerName."
+        } else {
+            "Outstanding statement for $customerName."
+        }
 
         // 1. Try WhatsApp
         val whatsappIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {

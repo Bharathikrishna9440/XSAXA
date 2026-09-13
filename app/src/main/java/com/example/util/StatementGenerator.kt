@@ -26,7 +26,8 @@ object StatementGenerator {
         payments: List<WeeklyPayment>,
         themeName: String,
         customizationCode: String,
-        customerPhone: String
+        customerPhone: String,
+        isClosedLoan: Boolean = false
     ): Bitmap = withContext(Dispatchers.Default) {
         val lastPayments = payments.filter { it.amountPaid > 0.0 }.takeLast(30).reversed()
         val width = 800
@@ -66,7 +67,8 @@ object StatementGenerator {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
             isAntiAlias = true
         }
-        canvas.drawText("Official Customer Loan Statement", 40f, 115f, subtitlePaint)
+        val statementSubtitle = if (isClosedLoan) "Official Customer Loan Statement (Closed Account)" else "Official Customer Loan Statement"
+        canvas.drawText(statementSubtitle, 40f, 115f, subtitlePaint)
         
         // Date
         val datePaint = Paint().apply {
@@ -89,8 +91,9 @@ object StatementGenerator {
             style = Paint.Style.STROKE
             strokeWidth = 2f
         }
-        canvas.drawRoundRect(40f, 210f, 385f, 410f, 16f, 16f, cardPaint)
-        canvas.drawRoundRect(40f, 210f, 385f, 410f, 16f, 16f, borderPaint)
+        val cardBottom = if (isClosedLoan) 420f else 410f
+        canvas.drawRoundRect(40f, 210f, 385f, cardBottom, 16f, 16f, cardPaint)
+        canvas.drawRoundRect(40f, 210f, 385f, cardBottom, 16f, 16f, borderPaint)
         
         val textPaint = Paint().apply {
             color = 0xFF1E293B.toInt()
@@ -118,31 +121,75 @@ object StatementGenerator {
         canvas.drawText(displayedCollectionDay, 60f, 345f, labelPaint)
         
         // Loan details card (Right Box)
-        canvas.drawRoundRect(415f, 210f, width.toFloat() - 40f, 410f, 16f, 16f, cardPaint)
-        canvas.drawRoundRect(415f, 210f, width.toFloat() - 40f, 410f, 16f, 16f, borderPaint)
+        val cardRight = width.toFloat() - 40f
+        canvas.drawRoundRect(415f, 210f, cardRight, cardBottom, 16f, 16f, cardPaint)
+        canvas.drawRoundRect(415f, 210f, cardRight, cardBottom, 16f, 16f, borderPaint)
         
         canvas.drawText("Loan Summary", 435f, 245f, textPaint)
         
+        if (isClosedLoan) {
+            val badgePaint = Paint().apply {
+                color = 0xFFFEE2E2.toInt() // Soft red background
+                style = Paint.Style.FILL
+            }
+            val badgeBorderPaint = Paint().apply {
+                color = 0xFFEF4444.toInt() // Red border
+                style = Paint.Style.STROKE
+                strokeWidth = 2f
+            }
+            val badgeTextPaint = Paint().apply {
+                color = 0xFFDC2626.toInt() // Dark red text
+                textSize = 13f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+                textAlign = Align.CENTER
+            }
+            val badgeRight = cardRight - 15f
+            val badgeLeft = badgeRight - 145f
+            val badgeTop = 222f
+            val badgeBottom = 254f
+            canvas.drawRoundRect(badgeLeft, badgeTop, badgeRight, badgeBottom, 8f, 8f, badgePaint)
+            canvas.drawRoundRect(badgeLeft, badgeTop, badgeRight, badgeBottom, 8f, 8f, badgeBorderPaint)
+            canvas.drawText("STATUS: CLOSED", (badgeLeft + badgeRight) / 2f, 243f, badgeTextPaint)
+        }
+        
         val amtPaid = payments.sumOf { it.amountPaid }.toLong()
         val totalContractVal = (activeLoan.loanAmount + activeLoan.interestAmount).toLong()
-        val outstandingVal = totalContractVal - amtPaid
+        val outstandingVal = if (isClosedLoan) 0L else maxOf(0L, totalContractVal - amtPaid)
         val dispersalDateStr = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date(activeLoan.startDate))
         
-        canvas.drawText("Date of Dispersal: $dispersalDateStr", 435f, 280f, labelPaint)
-        canvas.drawText("Total Contract Value: ₹$totalContractVal", 435f, 310f, labelPaint)
-        canvas.drawText("Amt Paid: ₹$amtPaid", 435f, 340f, labelPaint)
-        canvas.drawText("Outstanding: ₹$outstandingVal", 435f, 370f, labelPaint)
+        if (isClosedLoan) {
+            canvas.drawText("Date of Dispersal: $dispersalDateStr", 435f, 275f, labelPaint)
+            canvas.drawText("Total Contract Value: ₹$totalContractVal", 435f, 305f, labelPaint)
+            canvas.drawText("Amt Paid: ₹$amtPaid", 435f, 335f, labelPaint)
+            canvas.drawText("Outstanding: ₹$outstandingVal", 435f, 365f, labelPaint)
+            val statusLabelPaint = Paint().apply {
+                color = 0xFFDC2626.toInt()
+                textSize = 18f
+                typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+                isAntiAlias = true
+            }
+            canvas.drawText("Status: CLOSED", 435f, 395f, statusLabelPaint)
+        } else {
+            canvas.drawText("Date of Dispersal: $dispersalDateStr", 435f, 280f, labelPaint)
+            canvas.drawText("Total Contract Value: ₹$totalContractVal", 435f, 310f, labelPaint)
+            canvas.drawText("Amt Paid: ₹$amtPaid", 435f, 340f, labelPaint)
+            canvas.drawText("Outstanding: ₹$outstandingVal", 435f, 370f, labelPaint)
+        }
         
         // Payments Table Title (Simplified to "Transaction History")
-        canvas.drawText("Transaction History", 40f, 440f, textPaint)
+        val tableTitleY = if (isClosedLoan) 450f else 440f
+        canvas.drawText("Transaction History", 40f, tableTitleY, textPaint)
         
         // Table Header
         val thPaint = Paint().apply {
             color = 0xFFF1F5F9.toInt()
             style = Paint.Style.FILL
         }
-        canvas.drawRect(40f, 460f, width.toFloat() - 40f, 505f, thPaint)
-        canvas.drawRect(40f, 460f, width.toFloat() - 40f, 505f, borderPaint)
+        val thTop = if (isClosedLoan) 470f else 460f
+        val thBottom = thTop + 45f
+        canvas.drawRect(40f, thTop, width.toFloat() - 40f, thBottom, thPaint)
+        canvas.drawRect(40f, thTop, width.toFloat() - 40f, thBottom, borderPaint)
         
         val thTextPaint = Paint().apply {
             color = 0xFF334155.toInt()
@@ -150,12 +197,12 @@ object StatementGenerator {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
         }
-        canvas.drawText("#", 60f, 490f, thTextPaint)
-        canvas.drawText("Date", 120f, 490f, thTextPaint)
-        canvas.drawText("Amnt Rec.", 400f, 490f, thTextPaint)
-        canvas.drawText("UPI / Cash", 600f, 490f, thTextPaint)
+        canvas.drawText("#", 60f, thTop + 30f, thTextPaint)
+        canvas.drawText("Date", 120f, thTop + 30f, thTextPaint)
+        canvas.drawText("Amnt Rec.", 400f, thTop + 30f, thTextPaint)
+        canvas.drawText("UPI / Cash", 600f, thTop + 30f, thTextPaint)
         
-        var currentY = 540f
+        var currentY = thBottom + 35f
         
         val rowPaint = Paint().apply {
             color = 0xFF334155.toInt()
