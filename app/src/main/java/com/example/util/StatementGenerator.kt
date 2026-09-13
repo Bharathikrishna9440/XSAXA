@@ -29,9 +29,11 @@ object StatementGenerator {
         customerPhone: String,
         isClosedLoan: Boolean = false
     ): Bitmap = withContext(Dispatchers.Default) {
-        val lastPayments = payments.filter { it.amountPaid > 0.0 }.takeLast(30).reversed()
+        val sortedPayments = payments
+            .filter { it.amountPaid > 0.0 }
+            .sortedWith(compareBy<WeeklyPayment> { it.paymentDate }.thenBy { it.weekNumber })
         val width = 800
-        val dynamicRowHeight = if (lastPayments.isEmpty()) 100f else (lastPayments.size * 45f)
+        val dynamicRowHeight = if (sortedPayments.isEmpty()) 100f else (sortedPayments.size * 45f)
         val height = maxOf(800, (540f + dynamicRowHeight + 150f).toInt())
         
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
@@ -197,8 +199,8 @@ object StatementGenerator {
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             isAntiAlias = true
         }
-        canvas.drawText("#", 60f, thTop + 30f, thTextPaint)
-        canvas.drawText("Date", 120f, thTop + 30f, thTextPaint)
+        canvas.drawText("Week No", 60f, thTop + 30f, thTextPaint)
+        canvas.drawText("Date", 190f, thTop + 30f, thTextPaint)
         canvas.drawText("Amnt Rec.", 400f, thTop + 30f, thTextPaint)
         canvas.drawText("UPI / Cash", 600f, thTop + 30f, thTextPaint)
         
@@ -219,7 +221,7 @@ object StatementGenerator {
         }
         
         val rowDateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        lastPayments.forEachIndexed { index, p ->
+        sortedPayments.forEachIndexed { index, p ->
             val pDateStr = rowDateFormat.format(Date(p.paymentDate))
             val isOnline = !p.upiTxnId.isNullOrEmpty() || 
                            p.notes.contains("Online", ignoreCase = true) || 
@@ -227,8 +229,9 @@ object StatementGenerator {
                            p.notes.contains("GPay", ignoreCase = true) || 
                            p.notes.contains("Bank", ignoreCase = true)
             val pModeStr = if (isOnline) "UPI" else "Cash"
-            canvas.drawText((index + 1).toString(), 60f, currentY, rowPaint)
-            canvas.drawText(pDateStr, 120f, currentY, rowPaint)
+            val weekLabel = if (p.weekNumber > 0) "Week ${p.weekNumber}" else "Week ${index + 1}"
+            canvas.drawText(weekLabel, 60f, currentY, rowPaint)
+            canvas.drawText(pDateStr, 190f, currentY, rowPaint)
             canvas.drawText("₹${p.amountPaid.toLong()}", 400f, currentY, boldRowPaint)
             canvas.drawText(pModeStr, 600f, currentY, rowPaint)
             
@@ -237,7 +240,7 @@ object StatementGenerator {
             currentY += 45f
         }
         
-        if (lastPayments.isEmpty()) {
+        if (sortedPayments.isEmpty()) {
             canvas.drawText("No payments found.", 120f, 550f, rowPaint)
             currentY = 600f
         }

@@ -1109,7 +1109,7 @@ fun CustomerDetailScreen(
                     it.loanCycleId == targetLoan.id &&
                     it.status.uppercase() != "DELETED" &&
                     it.amountPaid > 0.0
-                }.sortedBy { it.weekNumber }
+                }.sortedWith(compareBy<WeeklyPayment> { it.paymentDate }.thenBy { it.weekNumber })
 
                 val statementBitmap = StatementGenerator.generateCustomerStatementBitmap(
                     context = context,

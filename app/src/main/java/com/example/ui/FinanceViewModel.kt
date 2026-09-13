@@ -1166,16 +1166,20 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private fun signInFirebaseAnonymouslySilently() {
         try {
             val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            if (auth.currentUser != null) {
+                android.util.Log.d("Firebase", "Existing silent session found: ${auth.currentUser?.uid}")
+                return
+            }
             auth.signInAnonymously()
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         android.util.Log.d("Firebase", "Silent App-Only Connection Established.")
                     } else {
-                        android.util.Log.e("Firebase", "Connection failed: ${task.exception?.message}")
+                        android.util.Log.w("Firebase", "Silent anonymous sign-in note: ${task.exception?.message}")
                     }
                 }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.w("Firebase", "Silent anonymous sign-in exception: ${e.message}")
         }
     }
 
@@ -2820,11 +2824,11 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 prefs.edit().putString("last_auto_backup_date", todayStr).apply()
                 android.util.Log.d("AutoBackup", "Auto backup to Firebase Storage succeeded: $responseString")
             } else {
-                android.util.Log.e("AutoBackup", "Auto backup to Firebase Storage failed: $responseString")
+                android.util.Log.w("AutoBackup", "Auto backup to Firebase Storage skipped or unavailable: $responseString")
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            android.util.Log.e("AutoBackup", "Error during auto backup: ${e.message}")
+            android.util.Log.w("AutoBackup", "Note during auto backup: ${e.message}")
         } finally {
             isAutoBackupRunning.set(false)
         }
@@ -2839,6 +2843,10 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 } catch (e: Exception) {
                     android.util.Log.w("FirebaseStorage", "Anonymous auth sign-in note: ${e.message}")
                 }
+            }
+            if (auth.currentUser == null) {
+                android.util.Log.d("FirebaseStorage", "No signed-in Firebase user; skipping Cloud Storage upload.")
+                return@withContext Pair(false, "No authenticated Firebase user. Cloud Storage upload skipped.")
             }
             val storage = com.google.firebase.storage.FirebaseStorage.getInstance(com.example.util.SecureConfig.firebaseStorageUrl)
             val sdf = java.text.SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", java.util.Locale.US)

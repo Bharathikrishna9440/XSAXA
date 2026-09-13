@@ -10,7 +10,7 @@ plugins {
   
   alias(libs.plugins.google.services)
   alias(libs.plugins.google.crashlytics)
-  alias(libs.plugins.google.perf)
+  // alias(libs.plugins.google.perf)
 }
 
 ksp {
@@ -189,7 +189,7 @@ dependencies {
   implementation(platform(libs.firebase.bom))
   implementation(libs.firebase.analytics)
   implementation(libs.firebase.crashlytics)
-  implementation(libs.firebase.perf)
+  // implementation(libs.firebase.perf)
   implementation(libs.firebase.appcheck)
   implementation("com.google.firebase:firebase-database")
   implementation("com.google.firebase:firebase-storage")
