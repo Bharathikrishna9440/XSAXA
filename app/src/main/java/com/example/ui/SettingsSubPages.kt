@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.input.key.*
 import com.example.network.FirebaseUpdateManager
 import com.example.network.UpdateStatus
@@ -1995,17 +1996,20 @@ fun TemplatesSubPage(
                                     modifier = Modifier.padding(12.dp)
                                 ) {
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = "${customer.customOrder}. ${customer.name}",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp,
-                                            color = textColor
+                                             text = "${customer.customOrder}. ${customer.name}",
+                                             fontWeight = FontWeight.Bold,
+                                             fontSize = 14.sp,
+                                             color = textColor,
+                                             maxLines = 1,
+                                             overflow = TextOverflow.Ellipsis,
+                                             modifier = Modifier.weight(1f)
                                         )
                                         if (!customer.city.isNullOrBlank()) {
+                                            Spacer(modifier = Modifier.width(8.dp))
                                             Box(
                                                 modifier = Modifier
                                                     .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
@@ -2015,7 +2019,9 @@ fun TemplatesSubPage(
                                                     text = customer.city,
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF334155)
+                                                    color = Color(0xFF334155),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }

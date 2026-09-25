@@ -2493,11 +2493,10 @@ fun CustomerOverviewCard(
                     .weight(1.0f)
                     .padding(horizontal = 4.dp)
             ) {
-                // Customer Name and City in the same straight line
+                // Customer Name on left and City on far right corner in the same straight line
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = item.customer.name,
@@ -2506,9 +2505,10 @@ fun CustomerOverviewCard(
                         color = ColorSlateDark,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        modifier = Modifier.weight(1f)
                     )
                     if (!item.customer.city.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
                                 .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
