@@ -2493,59 +2493,51 @@ fun CustomerOverviewCard(
                     .weight(1.0f)
                     .padding(horizontal = 4.dp)
             ) {
+                // Customer Name and City in the same straight line
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    Text(
+                        text = item.customer.name,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = ColorSlateDark,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (!item.customer.city.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = item.customer.name,
-                                fontSize = 16.sp,
+                                text = item.customer.city,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = ColorSlateDark,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false)
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
-                        if (item.customer.phone.isNotBlank()) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(10.dp), tint = Color.Black)
-                                Text(
-                                    text = if (item.customer.phone2.isNotBlank()) "${item.customer.phone}, ${item.customer.phone2}" else item.customer.phone,
-                                    fontSize = 12.sp,
-                                    color = Color.Black
-                                )
-                            }
-                        }
-                        
-                        Spacer(modifier = Modifier.height(2.dp))
                     }
-                    
-                    // Show a Badge representing region if specified. Do NOT show collection group name: "dont show name here for every customer"
-                    Column(horizontalAlignment = Alignment.End) {
-                        if (!item.customer.city.isNullOrBlank()) {
-                            Box(
-                                modifier = Modifier
-                                    .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = item.customer.city,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ColorSlateDark
-                                )
-                            }
-                        }
+                }
+
+                if (item.customer.phone.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(10.dp), tint = Color.Black)
+                        Text(
+                            text = if (item.customer.phone2.isNotBlank()) "${item.customer.phone}, ${item.customer.phone2}" else item.customer.phone,
+                            fontSize = 12.sp,
+                            color = Color.Black
+                        )
                     }
                 }
 

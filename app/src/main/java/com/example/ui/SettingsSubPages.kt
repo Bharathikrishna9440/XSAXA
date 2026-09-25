@@ -1995,7 +1995,7 @@ fun TemplatesSubPage(
                                     modifier = Modifier.padding(12.dp)
                                 ) {
                                     Row(
-                                        horizontalArrangement = Arrangement.Start,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
@@ -2005,6 +2005,20 @@ fun TemplatesSubPage(
                                             fontSize = 14.sp,
                                             color = textColor
                                         )
+                                        if (!customer.city.isNullOrBlank()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(Color(0xFFE2E8F0), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                            ) {
+                                                Text(
+                                                    text = customer.city,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF334155)
+                                                )
+                                            }
+                                        }
                                     }
                                     
                                     Spacer(modifier = Modifier.height(8.dp))
